@@ -143,8 +143,7 @@ compassWrap.addEventListener("pointercancel", (event) => {
 
 compassWrap.addEventListener("wheel", (event) => {
   event.preventDefault();
-  const delta = event.deltaY;
-  state.velocity += delta * 0.0022;
+  state.velocity += event.deltaY * 0.0022;
 }, { passive: false });
 
 needles.forEach((needle) => {
