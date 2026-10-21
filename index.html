@@ -10,144 +10,87 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="brand-block">
-        <h1>Watch Tracker</h1>
-        <p>Private ranking, feedback & media archive</p>
-      </div>
+  <div class="app">
+    <header class="titlebar">
+      <h1>Watch Tracker</h1>
     </header>
 
-    <main class="home-screen">
-      <section class="hero-panel glass">
-        <div class="hero-copy">
-          <span class="eyebrow">Navigation</span>
-          <h2>Spin the Compass</h2>
-          <p>
-            Drag, swipe or scroll the compass to rotate it. Tap any needle to
-            open its section.
-          </p>
-        </div>
+    <main class="stage">
+      <div id="compassWrap" class="compass-wrap" aria-label="Navigation">
+        <div class="ambient ambient-1"></div>
+        <div class="ambient ambient-2"></div>
 
-        <div class="compass-stage">
-          <div id="compassWrap" class="compass-wrap">
-            <div class="compass-glow"></div>
+        <div id="compass" class="compass">
+          <div class="outer-ring"></div>
+          <div class="inner-ring"></div>
 
-            <div id="compass" class="compass" aria-label="Main navigation compass">
-              <div class="ring ring-outer"></div>
-              <div class="ring ring-inner"></div>
-              <div class="ring-cut top"></div>
-              <div class="ring-cut right"></div>
-              <div class="ring-cut bottom"></div>
-              <div class="ring-cut left"></div>
+          <button class="needle needle-top" data-target="watchlistPanel" aria-label="Watchlist">
+            <span class="needle-long"></span>
+            <span class="needle-short"></span>
+          </button>
 
-              <button class="needle needle-top" data-target="watchlistPanel" aria-label="Open Watchlist">
-                <span class="needle-shape long"></span>
-                <span class="needle-shape short"></span>
-                <span class="needle-label">Watchlist</span>
-              </button>
+          <button class="needle needle-right" data-target="creationPanel" aria-label="Creation">
+            <span class="needle-long"></span>
+            <span class="needle-short"></span>
+          </button>
 
-              <button class="needle needle-right" data-target="creationPanel" aria-label="Open Creation">
-                <span class="needle-shape long"></span>
-                <span class="needle-shape short"></span>
-                <span class="needle-label">Creation</span>
-              </button>
+          <button class="needle needle-bottom" data-target="libraryPanel" aria-label="Library">
+            <span class="needle-long"></span>
+            <span class="needle-short"></span>
+          </button>
 
-              <button class="needle needle-bottom" data-target="libraryPanel" aria-label="Open Library">
-                <span class="needle-shape long"></span>
-                <span class="needle-shape short"></span>
-                <span class="needle-label">Library</span>
-              </button>
+          <button class="needle needle-left" data-target="statisticsPanel" aria-label="Statistics">
+            <span class="needle-long"></span>
+            <span class="needle-short"></span>
+          </button>
 
-              <button class="needle needle-left" data-target="statsPanel" aria-label="Open Statistics">
-                <span class="needle-shape long"></span>
-                <span class="needle-shape short"></span>
-                <span class="needle-label">Statistics</span>
-              </button>
-
-              <div class="compass-core">
-                <div class="core-inner"></div>
-              </div>
-            </div>
+          <div class="center-core">
+            <div class="center-core-inner"></div>
           </div>
         </div>
-      </section>
-
-      <section class="quick-info-grid">
-        <article class="info-card glass">
-          <h3>Watchlist</h3>
-          <p>Add planned titles, then tick them off to move them into your library.</p>
-        </article>
-
-        <article class="info-card glass">
-          <h3>Creation</h3>
-          <p>Create Groups, Productions, Seasons and Episodes in your own structure.</p>
-        </article>
-
-        <article class="info-card glass">
-          <h3>Library</h3>
-          <p>Browse your archive, sort entries, filter types and edit everything.</p>
-        </article>
-
-        <article class="info-card glass">
-          <h3>Statistics</h3>
-          <p>View watch time, ratings, genres and compatible chart visualizations.</p>
-        </article>
-      </section>
+      </div>
     </main>
   </div>
 
   <div id="overlay" class="overlay hidden"></div>
 
-  <section id="watchlistPanel" class="panel glass hidden" aria-hidden="true">
+  <section id="watchlistPanel" class="panel hidden" aria-hidden="true">
     <div class="panel-head">
       <h2>Watchlist</h2>
-      <button class="close-panel" aria-label="Close panel">&times;</button>
+      <button class="close-panel" aria-label="Close">&times;</button>
     </div>
     <div class="panel-body">
-      <p>This will become your checklist-style watchlist.</p>
-      <ul>
-        <li>Add title</li>
-        <li>Optional media type</li>
-        <li>Optional release / airing info</li>
-        <li>Tick to move into Library as a Production</li>
-      </ul>
+      <p>This is the Watchlist panel.</p>
     </div>
   </section>
 
-  <section id="creationPanel" class="panel glass hidden" aria-hidden="true">
+  <section id="creationPanel" class="panel hidden" aria-hidden="true">
     <div class="panel-head">
       <h2>Creation</h2>
-      <button class="close-panel" aria-label="Close panel">&times;</button>
+      <button class="close-panel" aria-label="Close">&times;</button>
     </div>
     <div class="panel-body">
-      <p>This will be your creation hub for:</p>
-      <ul>
-        <li>Groups</li>
-        <li>Productions</li>
-        <li>Seasons</li>
-        <li>Episodes</li>
-      </ul>
+      <p>This is the Creation panel.</p>
     </div>
   </section>
 
-  <section id="libraryPanel" class="panel glass hidden" aria-hidden="true">
+  <section id="libraryPanel" class="panel hidden" aria-hidden="true">
     <div class="panel-head">
       <h2>Library</h2>
-      <button class="close-panel" aria-label="Close panel">&times;</button>
+      <button class="close-panel" aria-label="Close">&times;</button>
     </div>
     <div class="panel-body">
-      <p>This will become the scrollable library with sorting and type filters.</p>
+      <p>This is the Library panel.</p>
     </div>
   </section>
 
-  <section id="statsPanel" class="panel glass hidden" aria-hidden="true">
+  <section id="statisticsPanel" class="panel hidden" aria-hidden="true">
     <div class="panel-head">
       <h2>Statistics</h2>
-      <button class="close-panel" aria-label="Close panel">&times;</button>
+      <button class="close-panel" aria-label="Close">&times;</button>
     </div>
     <div class="panel-body">
-      <p>This will become your statistics area with compatibility-based chart selection.</p>
+      <p>This is the Statistics panel.</p>
     </div>
   </section>
 
