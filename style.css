@@ -1,19 +1,14 @@
 :root {
-  --bg: #050607;
-  --bg-soft: #0b0d10;
-  --panel: rgba(8, 10, 13, 0.92);
+  --bg: #030405;
+  --bg-2: #08090b;
+  --panel: rgba(10, 12, 16, 0.96);
 
-  --gold-1: #f6e8bb;
-  --gold-2: #d7b56a;
-  --gold-3: #8d6a2d;
-  --gold-4: #fff3cb;
+  --gold-1: #f7eac0;
+  --gold-2: #d8b86c;
+  --gold-3: #8b6829;
+  --gold-4: #fff1c8;
 
-  --text: #f4eddc;
-  --muted: #c7b892;
-
-  --line: rgba(215, 181, 106, 0.22);
-  --shadow: rgba(0, 0, 0, 0.48);
-  --glow: rgba(231, 199, 122, 0.14);
+  --text: #f3ecd8;
 }
 
 * {
@@ -24,27 +19,27 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
-  font-family: "Georgia", "Times New Roman", serif;
-  background: var(--bg);
-  color: var(--text);
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  background: #000;
+  font-family: "Georgia", "Times New Roman", serif;
+  color: var(--text);
 }
 
 body {
   background:
-    radial-gradient(circle at 50% 45%, rgba(255, 218, 138, 0.045), transparent 18%),
-    radial-gradient(circle at 50% 50%, rgba(255, 218, 138, 0.025), transparent 32%),
-    radial-gradient(circle at center, #101215 0%, #090a0c 38%, #050607 72%, #020304 100%);
+    radial-gradient(circle at center, rgba(255, 224, 150, 0.045), transparent 20%),
+    radial-gradient(circle at center, rgba(255, 224, 150, 0.025), transparent 38%),
+    radial-gradient(circle at center, #0b0c0f 0%, #050607 45%, #020304 75%, #000 100%);
 }
 
-body::before {
+body::after {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(circle at center, transparent 45%, rgba(0,0,0,0.42) 100%);
+  background: radial-gradient(circle at center, transparent 48%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 button {
@@ -52,43 +47,21 @@ button {
 }
 
 .app {
-  position: relative;
   width: 100%;
-  min-height: 100vh;
-}
-
-.titlebar {
-  position: absolute;
-  top: 28px;
-  left: 0;
-  width: 100%;
-  z-index: 10;
-  text-align: center;
-  pointer-events: none;
-}
-
-.titlebar h1 {
-  margin: 0;
-  font-size: clamp(2.25rem, 5vw, 4.8rem);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--gold-1);
-  text-shadow:
-    0 0 18px rgba(233, 204, 129, 0.08),
-    0 6px 22px rgba(0, 0, 0, 0.42);
+  height: 100%;
 }
 
 .stage {
-  width: 100%;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   display: grid;
   place-items: center;
-  padding: 110px 20px 20px;
+  padding: 0;
 }
 
 .compass-wrap {
   position: relative;
-  width: min(88vw, 680px);
+  width: min(86vw, 720px);
   aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
@@ -98,22 +71,20 @@ button {
 
 .ambient {
   position: absolute;
-  inset: 0;
   border-radius: 50%;
   pointer-events: none;
 }
 
 .ambient-1 {
-  background:
-    radial-gradient(circle, rgba(244, 217, 151, 0.08), transparent 44%);
-  filter: blur(22px);
+  inset: 0;
+  background: radial-gradient(circle, rgba(247, 234, 192, 0.08), transparent 48%);
+  filter: blur(24px);
 }
 
 .ambient-2 {
-  inset: 10%;
-  background:
-    radial-gradient(circle, rgba(215, 181, 106, 0.06), transparent 56%);
-  filter: blur(28px);
+  inset: 12%;
+  background: radial-gradient(circle, rgba(216, 184, 108, 0.06), transparent 60%);
+  filter: blur(30px);
 }
 
 .compass {
@@ -127,28 +98,27 @@ button {
 .outer-ring,
 .inner-ring {
   position: absolute;
-  border-radius: 50%;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  border-radius: 50%;
   pointer-events: none;
 }
 
 .outer-ring {
   width: 86%;
   height: 86%;
-  border: 2px solid rgba(241, 214, 148, 0.95);
+  border: 2px solid rgba(247, 234, 192, 0.96);
   box-shadow:
-    0 0 28px rgba(241, 214, 148, 0.06),
-    inset 0 0 8px rgba(255, 236, 183, 0.05);
+    0 0 24px rgba(247, 234, 192, 0.06),
+    inset 0 0 6px rgba(255, 241, 200, 0.04);
 }
 
 .inner-ring {
   width: 58%;
   height: 58%;
-  border: 2px solid rgba(201, 157, 78, 0.88);
-  box-shadow:
-    0 0 18px rgba(201, 157, 78, 0.05);
+  border: 2px solid rgba(216, 184, 108, 0.9);
+  box-shadow: 0 0 16px rgba(216, 184, 108, 0.05);
 }
 
 .needle {
@@ -184,9 +154,9 @@ button {
     var(--gold-3) 100%
   );
   box-shadow:
-    0 0 14px rgba(244, 217, 151, 0.08),
-    0 0 26px rgba(215, 181, 106, 0.05);
-  transition: filter 140ms ease, transform 140ms ease;
+    0 0 14px rgba(247, 234, 192, 0.08),
+    0 0 24px rgba(216, 184, 108, 0.05);
+  transition: filter 140ms ease;
 }
 
 .needle-long {
@@ -206,7 +176,7 @@ button {
 
 .needle:hover .needle-long,
 .needle:hover .needle-short {
-  filter: brightness(1.1);
+  filter: brightness(1.08);
 }
 
 .needle-top {
@@ -236,8 +206,8 @@ button {
   background:
     radial-gradient(circle at 34% 30%, var(--gold-4), var(--gold-2) 58%, var(--gold-3));
   box-shadow:
-    0 0 26px rgba(241, 214, 148, 0.13),
-    0 6px 18px rgba(0, 0, 0, 0.4);
+    0 0 24px rgba(247, 234, 192, 0.14),
+    0 5px 16px rgba(0, 0, 0, 0.42);
   z-index: 5;
   display: grid;
   place-items: center;
@@ -247,14 +217,14 @@ button {
   width: 44%;
   height: 44%;
   border-radius: 50%;
-  background: rgba(83, 62, 22, 0.34);
-  border: 1px solid rgba(255, 240, 199, 0.28);
+  background: rgba(92, 70, 28, 0.35);
+  border: 1px solid rgba(255, 241, 200, 0.26);
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.56);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   z-index: 20;
@@ -269,11 +239,11 @@ button {
   max-height: 78vh;
   overflow: auto;
   z-index: 30;
-  background: linear-gradient(180deg, rgba(15, 17, 20, 0.96), rgba(8, 9, 12, 0.98));
-  border: 1px solid rgba(215, 181, 106, 0.18);
+  background: linear-gradient(180deg, rgba(13, 15, 18, 0.98), rgba(7, 8, 10, 0.99));
+  border: 1px solid rgba(216, 184, 108, 0.18);
   border-radius: 24px;
   box-shadow:
-    0 22px 60px rgba(0, 0, 0, 0.55),
+    0 20px 60px rgba(0, 0, 0, 0.56),
     inset 0 1px 0 rgba(255,255,255,0.03);
   padding: 18px 18px 20px;
 }
@@ -297,7 +267,7 @@ button {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 1px solid rgba(215, 181, 106, 0.18);
+  border: 1px solid rgba(216, 184, 108, 0.18);
   background: rgba(255,255,255,0.02);
   color: var(--gold-1);
   font-size: 1.45rem;
@@ -319,24 +289,6 @@ button {
 }
 
 @media (max-width: 720px) {
-  .titlebar {
-    top: 24px;
-  }
-
-  .titlebar h1 {
-    font-size: clamp(2rem, 10vw, 3.3rem);
-  }
-
-  .stage {
-    padding-top: 100px;
-  }
-
   .compass-wrap {
-    width: min(92vw, 500px);
+    width: min(92vw, 520px);
   }
-
-  .outer-ring,
-  .inner-ring {
-    border-width: 2px;
-  }
-}
