@@ -20,29 +20,21 @@
           <div class="outer-ring"></div>
           <div class="inner-ring"></div>
 
-          <button class="needle needle-top" data-target="watchlistPanel" aria-label="Watchlist">
-            <span class="needle-long"></span>
-            <span class="needle-short"></span>
-          </button>
-
-          <button class="needle needle-right" data-target="creationPanel" aria-label="Creation">
-            <span class="needle-long"></span>
-            <span class="needle-short"></span>
-          </button>
-
-          <button class="needle needle-bottom" data-target="libraryPanel" aria-label="Library">
-            <span class="needle-long"></span>
-            <span class="needle-short"></span>
-          </button>
-
-          <button class="needle needle-left" data-target="statisticsPanel" aria-label="Statistics">
-            <span class="needle-long"></span>
-            <span class="needle-short"></span>
-          </button>
+          <!-- centered visual compass rose -->
+          <div class="rose rose-vertical"></div>
+          <div class="rose rose-horizontal"></div>
+          <div class="rose rose-diag rose-diag-a"></div>
+          <div class="rose rose-diag rose-diag-b"></div>
 
           <div class="center-core">
             <div class="center-core-inner"></div>
           </div>
+
+          <!-- invisible click zones -->
+          <button class="hit hit-top" data-target="watchlistPanel" aria-label="Watchlist"></button>
+          <button class="hit hit-right" data-target="creationPanel" aria-label="Creation"></button>
+          <button class="hit hit-bottom" data-target="libraryPanel" aria-label="Library"></button>
+          <button class="hit hit-left" data-target="statisticsPanel" aria-label="Statistics"></button>
         </div>
       </div>
     </main>
