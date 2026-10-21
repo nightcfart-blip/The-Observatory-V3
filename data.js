@@ -3,8 +3,5 @@ const trackerData = {
   groups: [],
   productions: [],
   seasons: [],
-  episodes: [],
-  preferences: {
-    theme: "cool-wood-gold-compass"
-  }
+  episodes: []
 };
