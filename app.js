@@ -12,7 +12,7 @@ const state = {
 
 const compassWrap = document.getElementById("compassWrap");
 const compass = document.getElementById("compass");
-const needles = document.querySelectorAll(".needle");
+const hits = document.querySelectorAll(".hit");
 const overlay = document.getElementById("overlay");
 const panels = document.querySelectorAll(".panel");
 const closeButtons = document.querySelectorAll(".close-panel");
@@ -146,11 +146,11 @@ compassWrap.addEventListener("wheel", (event) => {
   state.velocity += event.deltaY * 0.0022;
 }, { passive: false });
 
-needles.forEach((needle) => {
-  needle.addEventListener("click", (event) => {
+hits.forEach((hit) => {
+  hit.addEventListener("click", (event) => {
     event.stopPropagation();
     if (state.dragging || state.clickLock) return;
-    openPanel(needle.dataset.target);
+    openPanel(hit.dataset.target);
   });
 });
 
