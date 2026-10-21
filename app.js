@@ -1,28 +1,24 @@
-const appState = {
+const state = {
   rotation: 0,
   velocity: 0,
   dragging: false,
-  lastPointerAngle: 0,
-  lastMoveTime: 0,
+  pointerId: null,
+  lastAngle: 0,
+  lastTime: 0,
+  moved: false,
+  clickLock: false,
   activePanel: null
 };
 
 const compassWrap = document.getElementById("compassWrap");
 const compass = document.getElementById("compass");
+const needles = document.querySelectorAll(".needle");
 const overlay = document.getElementById("overlay");
-const needleButtons = document.querySelectorAll(".needle");
 const panels = document.querySelectorAll(".panel");
 const closeButtons = document.querySelectorAll(".close-panel");
 
-function normalizeAngle(angle) {
-  let a = angle % 360;
-  if (a < -180) a += 360;
-  if (a > 180) a -= 360;
-  return a;
-}
-
-function setCompassRotation(deg) {
-  appState.rotation = deg;
+function setRotation(deg) {
+  state.rotation = deg;
   compass.style.transform = `rotate(${deg}deg)`;
 }
 
@@ -34,132 +30,142 @@ function getCenter(el) {
   };
 }
 
-function getAngleFromPoint(clientX, clientY) {
+function getPointerAngle(clientX, clientY) {
   const center = getCenter(compassWrap);
   const dx = clientX - center.x;
   const dy = clientY - center.y;
-  return Math.atan2(dy, dx) * 180 / Math.PI;
+  return Math.atan2(dy, dx) * (180 / Math.PI);
 }
 
-function startDrag(clientX, clientY) {
-  appState.dragging = true;
-  appState.velocity = 0;
-  appState.lastPointerAngle = getAngleFromPoint(clientX, clientY);
-  appState.lastMoveTime = performance.now();
-  compassWrap.classList.add("dragging");
+function normalizeAngle(angle) {
+  let value = angle % 360;
+  if (value > 180) value -= 360;
+  if (value < -180) value += 360;
+  return value;
 }
 
-function moveDrag(clientX, clientY) {
-  if (!appState.dragging) return;
+function startDrag(event) {
+  state.dragging = true;
+  state.pointerId = event.pointerId;
+  state.velocity = 0;
+  state.lastAngle = getPointerAngle(event.clientX, event.clientY);
+  state.lastTime = performance.now();
+  state.moved = false;
+  compassWrap.setPointerCapture(event.pointerId);
+}
+
+function moveDrag(event) {
+  if (!state.dragging || event.pointerId !== state.pointerId) return;
 
   const now = performance.now();
-  const angle = getAngleFromPoint(clientX, clientY);
-  let diff = normalizeAngle(angle - appState.lastPointerAngle);
+  const currentAngle = getPointerAngle(event.clientX, event.clientY);
+  const diff = normalizeAngle(currentAngle - state.lastAngle);
 
-  const newRotation = appState.rotation + diff;
-  setCompassRotation(newRotation);
-
-  const dt = Math.max(now - appState.lastMoveTime, 1);
-  appState.velocity = diff / dt * 16;
-
-  appState.lastPointerAngle = angle;
-  appState.lastMoveTime = now;
-}
-
-function endDrag() {
-  if (!appState.dragging) return;
-  appState.dragging = false;
-  compassWrap.classList.remove("dragging");
-}
-
-function animateInertia() {
-  if (!appState.dragging && Math.abs(appState.velocity) > 0.01) {
-    setCompassRotation(appState.rotation + appState.velocity);
-    appState.velocity *= 0.96;
-  } else if (!appState.dragging && Math.abs(appState.velocity) <= 0.01) {
-    appState.velocity = 0;
+  if (Math.abs(diff) > 0.05) {
+    state.moved = true;
   }
 
-  requestAnimationFrame(animateInertia);
+  setRotation(state.rotation + diff);
+
+  const deltaTime = Math.max(now - state.lastTime, 1);
+  state.velocity = (diff / deltaTime) * 16;
+
+  state.lastAngle = currentAngle;
+  state.lastTime = now;
 }
 
-function openPanel(panelId) {
-  const panel = document.getElementById(panelId);
+function endDrag(event) {
+  if (!state.dragging || event.pointerId !== state.pointerId) return;
+
+  state.dragging = false;
+
+  if (state.moved) {
+    state.clickLock = true;
+    setTimeout(() => {
+      state.clickLock = false;
+    }, 180);
+  }
+
+  try {
+    compassWrap.releasePointerCapture(event.pointerId);
+  } catch (e) {}
+}
+
+function inertia() {
+  if (!state.dragging) {
+    if (Math.abs(state.velocity) > 0.01) {
+      setRotation(state.rotation + state.velocity);
+      state.velocity *= 0.965;
+    } else {
+      state.velocity = 0;
+    }
+  }
+
+  requestAnimationFrame(inertia);
+}
+
+function openPanel(id) {
+  const panel = document.getElementById(id);
   if (!panel) return;
 
-  closeAllPanels();
+  closePanels();
   panel.classList.remove("hidden");
   panel.setAttribute("aria-hidden", "false");
   overlay.classList.remove("hidden");
-  appState.activePanel = panelId;
+  state.activePanel = id;
 }
 
-function closeAllPanels() {
-  panels.forEach(panel => {
+function closePanels() {
+  panels.forEach((panel) => {
     panel.classList.add("hidden");
     panel.setAttribute("aria-hidden", "true");
   });
+
   overlay.classList.add("hidden");
-  appState.activePanel = null;
+  state.activePanel = null;
 }
 
-needleButtons.forEach(button => {
-  button.addEventListener("click", (event) => {
-    if (appState.dragging) return;
-    const panelId = event.currentTarget.dataset.target;
-    openPanel(panelId);
-  });
+compassWrap.addEventListener("pointerdown", (event) => {
+  startDrag(event);
 });
 
-closeButtons.forEach(button => {
-  button.addEventListener("click", closeAllPanels);
+compassWrap.addEventListener("pointermove", (event) => {
+  moveDrag(event);
 });
 
-overlay.addEventListener("click", closeAllPanels);
+compassWrap.addEventListener("pointerup", (event) => {
+  endDrag(event);
+});
 
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeAllPanels();
-  }
+compassWrap.addEventListener("pointercancel", (event) => {
+  endDrag(event);
 });
 
 compassWrap.addEventListener("wheel", (event) => {
   event.preventDefault();
-  const direction = Math.sign(event.deltaY || 1);
-  appState.velocity += direction * 1.2;
+  const delta = event.deltaY;
+  state.velocity += delta * 0.0022;
 }, { passive: false });
 
-compassWrap.addEventListener("mousedown", (event) => {
-  startDrag(event.clientX, event.clientY);
+needles.forEach((needle) => {
+  needle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    if (state.dragging || state.clickLock) return;
+    openPanel(needle.dataset.target);
+  });
 });
 
-window.addEventListener("mousemove", (event) => {
-  moveDrag(event.clientX, event.clientY);
+overlay.addEventListener("click", closePanels);
+
+closeButtons.forEach((button) => {
+  button.addEventListener("click", closePanels);
 });
 
-window.addEventListener("mouseup", () => {
-  endDrag();
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closePanels();
+  }
 });
 
-compassWrap.addEventListener("touchstart", (event) => {
-  if (!event.touches.length) return;
-  const touch = event.touches[0];
-  startDrag(touch.clientX, touch.clientY);
-}, { passive: true });
-
-compassWrap.addEventListener("touchmove", (event) => {
-  if (!event.touches.length) return;
-  const touch = event.touches[0];
-  moveDrag(touch.clientX, touch.clientY);
-}, { passive: true });
-
-compassWrap.addEventListener("touchend", () => {
-  endDrag();
-});
-
-compassWrap.addEventListener("touchcancel", () => {
-  endDrag();
-});
-
-animateInertia();
-setCompassRotation(0);
+setRotation(0);
+inertia();
