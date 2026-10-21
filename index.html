@@ -1,88 +1,552 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-  />
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#050506">
+
   <title>Watch Tracker</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-  <div class="app">
-    <main class="stage">
-      <div id="compassWrap" class="compass-wrap" aria-label="Navigation">
-        <div class="ambient ambient-1"></div>
-        <div class="ambient ambient-2"></div>
 
-        <div id="compass" class="compass">
-          <div class="outer-ring"></div>
-          <div class="inner-ring"></div>
+  <!-- HOME -->
 
-          <!-- centered visual compass rose -->
-          <div class="rose rose-vertical"></div>
-          <div class="rose rose-horizontal"></div>
-          <div class="rose rose-diag rose-diag-a"></div>
-          <div class="rose rose-diag rose-diag-b"></div>
+  <main id="homePage" class="home-page">
 
-          <div class="center-core">
-            <div class="center-core-inner"></div>
+    <div id="compassWrap" class="compass-wrap">
+
+      <div id="compass" class="compass">
+
+        <svg class="compass-art"
+             viewBox="0 0 500 500"
+             aria-hidden="true">
+
+          <defs>
+            <linearGradient id="gold"
+                            x1="0" y1="0"
+                            x2="1" y2="1">
+              <stop offset="0%" stop-color="#fff0b1"/>
+              <stop offset="45%" stop-color="#dab66c"/>
+              <stop offset="100%" stop-color="#976a31"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Decorative incomplete rings -->
+
+          <circle cx="250" cy="250" r="180"
+                  class="ring ring-one"/>
+
+          <circle cx="250" cy="250" r="145"
+                  class="ring ring-two"/>
+
+          <!-- Main compass points -->
+
+          <g fill="url(#gold)">
+
+            <polygon points="
+              250,38
+              265,250
+              250,250
+            "/>
+
+            <polygon points="
+              250,38
+              235,250
+              250,250
+            " opacity=".63"/>
+
+            <polygon points="
+              462,250
+              250,265
+              250,250
+            "/>
+
+            <polygon points="
+              462,250
+              250,235
+              250,250
+            " opacity=".63"/>
+
+            <polygon points="
+              250,462
+              235,250
+              250,250
+            "/>
+
+            <polygon points="
+              250,462
+              265,250
+              250,250
+            " opacity=".63"/>
+
+            <polygon points="
+              38,250
+              250,235
+              250,250
+            "/>
+
+            <polygon points="
+              38,250
+              250,265
+              250,250
+            " opacity=".63"/>
+
+            <!-- Smaller diagonal points -->
+
+            <polygon points="157,157 250,250 217,183"
+                     opacity=".85"/>
+
+            <polygon points="343,157 250,250 283,183"
+                     opacity=".85"/>
+
+            <polygon points="343,343 250,250 283,317"
+                     opacity=".85"/>
+
+            <polygon points="157,343 250,250 217,317"
+                     opacity=".85"/>
+
+            <polygon points="157,157 183,217 250,250"
+                     opacity=".55"/>
+
+            <polygon points="343,157 317,217 250,250"
+                     opacity=".55"/>
+
+            <polygon points="343,343 317,283 250,250"
+                     opacity=".55"/>
+
+            <polygon points="157,343 183,283 250,250"
+                     opacity=".55"/>
+
+          </g>
+
+        </svg>
+
+        <!-- Four compass-tip buttons -->
+
+        <button class="tip tip-top"
+                data-page="watchlist"
+                aria-label="Open Watchlist"></button>
+
+        <button class="tip tip-right"
+                data-page="creation"
+                aria-label="Open Creation"></button>
+
+        <button class="tip tip-bottom"
+                data-page="library"
+                aria-label="Open Library"></button>
+
+        <button class="tip tip-left"
+                data-page="statistics"
+                aria-label="Open Statistics"></button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- WATCHLIST -->
+
+  <section id="watchlistPage" class="page">
+
+    <header class="page-header">
+      <button class="back-btn" data-back aria-label="Home">
+        ‹
+      </button>
+
+      <h1>Watchlist</h1>
+
+      <span class="header-space"></span>
+    </header>
+
+    <div class="page-content">
+
+      <form id="watchlistForm" class="surface form-card">
+
+        <input id="watchTitle"
+               class="main-input"
+               placeholder="Title"
+               required>
+
+        <div class="form-grid">
+
+          <select id="watchMedium">
+            <option value="">Media type (optional)</option>
+          </select>
+
+          <input id="watchRelease"
+                 type="text"
+                 placeholder="Release / airing (optional)">
+        </div>
+
+        <button type="submit" class="gold-button">
+          Add to Watchlist
+        </button>
+
+      </form>
+
+      <div id="watchlistItems" class="entry-list"></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CREATION -->
+
+  <section id="creationPage" class="page">
+
+    <header class="page-header">
+      <button class="back-btn" data-back aria-label="Home">
+        ‹
+      </button>
+
+      <h1>Creation</h1>
+
+      <span class="header-space"></span>
+    </header>
+
+    <div class="page-content">
+
+      <div class="creation-options">
+
+        <button data-create="group" class="creation-option">
+          <span class="option-symbol">◇</span>
+          <span>Group</span>
+          <span class="option-arrow">›</span>
+        </button>
+
+        <button data-create="production" class="creation-option">
+          <span class="option-symbol">✦</span>
+          <span>Production</span>
+          <span class="option-arrow">›</span>
+        </button>
+
+        <button data-create="season" class="creation-option">
+          <span class="option-symbol">◈</span>
+          <span>Season</span>
+          <span class="option-arrow">›</span>
+        </button>
+
+        <button data-create="episode" class="creation-option">
+          <span class="option-symbol">✧</span>
+          <span>Episode</span>
+          <span class="option-arrow">›</span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- LIBRARY -->
+
+  <section id="libraryPage" class="page">
+
+    <header class="page-header">
+      <button class="back-btn" data-back aria-label="Home">
+        ‹
+      </button>
+
+      <h1>Library</h1>
+
+      <button id="libraryAddBtn"
+              class="header-action"
+              aria-label="Create entry">
+        +
+      </button>
+    </header>
+
+    <div class="page-content">
+
+      <div class="library-controls">
+
+        <input id="librarySearch"
+               type="search"
+               placeholder="Search library...">
+
+        <select id="librarySort">
+
+          <option value="newest">Newest added</option>
+          <option value="oldest">Eldest added</option>
+          <option value="az">Alphabetically A–Z</option>
+          <option value="za">Alphabetically Z–A</option>
+          <option value="medium">Media type</option>
+          <option value="ratingHigh">Highest rating</option>
+          <option value="ratingLow">Lowest rating</option>
+          <option value="releaseNew">Newest airing</option>
+          <option value="releaseOld">Oldest airing</option>
+
+        </select>
+
+        <div class="library-filters">
+
+          <label>
+            <input type="checkbox"
+                   data-filter="group">
+            Groups
+          </label>
+
+          <label>
+            <input type="checkbox"
+                   data-filter="production"
+                   checked>
+            Productions
+          </label>
+
+          <label>
+            <input type="checkbox"
+                   data-filter="season">
+            Seasons
+          </label>
+
+          <label>
+            <input type="checkbox"
+                   data-filter="episode">
+            Episodes
+          </label>
+
+        </div>
+
+      </div>
+
+      <div id="libraryCount" class="library-count"></div>
+
+      <div id="libraryItems" class="entry-list"></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- STATISTICS -->
+
+  <section id="statisticsPage" class="page">
+
+    <header class="page-header">
+      <button class="back-btn" data-back aria-label="Home">
+        ‹
+      </button>
+
+      <h1>Statistics</h1>
+
+      <span class="header-space"></span>
+    </header>
+
+    <div class="page-content">
+
+      <div class="surface statistics-placeholder">
+        <span class="placeholder-symbol">✧</span>
+        <p>Statistics will be added in a later step.</p>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- CREATE / EDIT MODAL -->
+
+  <div id="editorOverlay" class="modal-overlay hidden">
+
+    <div class="editor-modal">
+
+      <header class="modal-header">
+
+        <button id="cancelEditor"
+                class="back-btn"
+                aria-label="Cancel">‹</button>
+
+        <h2 id="editorHeading">Create</h2>
+
+        <button id="saveEditor"
+                class="header-action save-action"
+                aria-label="Save">✓</button>
+
+      </header>
+
+      <div class="editor-scroll">
+
+        <form id="editorForm">
+
+          <input type="hidden" id="editId">
+          <input type="hidden" id="editType">
+
+          <div class="editor-section">
+
+            <label class="field-label">Title</label>
+
+            <input id="editTitle"
+                   type="text"
+                   class="main-input"
+                   placeholder="Untitled"
+                   required>
+
           </div>
 
-          <!-- invisible click zones -->
-          <button class="hit hit-top" data-target="watchlistPanel" aria-label="Watchlist"></button>
-          <button class="hit hit-right" data-target="creationPanel" aria-label="Creation"></button>
-          <button class="hit hit-bottom" data-target="libraryPanel" aria-label="Library"></button>
-          <button class="hit hit-left" data-target="statisticsPanel" aria-label="Statistics"></button>
-        </div>
+          <div id="mediumField" class="editor-section">
+
+            <label class="field-label">Media type</label>
+
+            <select id="editMedium"></select>
+
+          </div>
+
+          <div id="parentField" class="editor-section">
+
+            <label id="parentLabel" class="field-label">
+              Parent
+            </label>
+
+            <select id="editParent"></select>
+
+          </div>
+
+          <div id="episodeNumberField" class="editor-section">
+
+            <label class="field-label">Episode number</label>
+
+            <input id="editEpisodeNumber"
+                   type="number"
+                   min="1"
+                   placeholder="Optional">
+
+          </div>
+
+          <div id="releaseField" class="editor-section">
+
+            <label class="field-label">
+              Release / airing
+            </label>
+
+            <input id="editRelease"
+                   type="text"
+                   placeholder="Year, date, or custom text">
+
+          </div>
+
+          <div id="durationField" class="editor-section">
+
+            <label class="field-label">
+              Duration (minutes)
+            </label>
+
+            <input id="editDuration"
+                   type="number"
+                   min="0"
+                   step="1"
+                   placeholder="Optional">
+
+          </div>
+
+          <div id="ratingField" class="editor-section">
+
+            <label class="field-label">Rating</label>
+
+            <div id="starRating" class="star-rating"></div>
+
+            <div class="rating-value">
+              <input id="editRating"
+                     type="number"
+                     min="0"
+                     max="10"
+                     step="0.1"
+                     placeholder="Unrated">
+
+              <span>/ 10</span>
+            </div>
+
+          </div>
+
+          <div class="editor-section">
+
+            <label class="field-label">
+              Main genres
+            </label>
+
+            <input id="editMainGenres"
+                   type="text"
+                   placeholder="Fantasy, Drama, Adventure">
+
+          </div>
+
+          <div class="editor-section">
+
+            <label class="field-label">
+              Secondary genres
+            </label>
+
+            <input id="editSecondaryGenres"
+                   type="text"
+                   placeholder="Mystery, Romance...">
+
+          </div>
+
+          <div class="editor-section">
+
+            <label class="field-label">
+              Personal opinion
+            </label>
+
+            <textarea id="editNotes"
+                      rows="5"
+                      placeholder="Your thoughts..."></textarea>
+
+          </div>
+
+          <div id="childrenSection"
+               class="editor-section hidden">
+
+            <div class="section-divider"></div>
+
+            <div class="section-heading-row">
+              <label id="childrenTitle" class="field-label">
+                Contents
+              </label>
+              <button id="addChildBtn"
+                      type="button"
+                      class="text-action">+ Add</button>
+            </div>
+
+            <div id="childrenList" class="children-list"></div>
+
+          </div>
+
+          <div class="editor-actions">
+
+            <button type="submit" class="gold-button">
+              Save
+            </button>
+
+            <button id="deleteEntryBtn"
+                    type="button"
+                    class="delete-button hidden">
+              Delete Entry
+            </button>
+
+          </div>
+
+        </form>
+
       </div>
-    </main>
+
+    </div>
+
   </div>
 
-  <div id="overlay" class="overlay hidden"></div>
-
-  <section id="watchlistPanel" class="panel hidden" aria-hidden="true">
-    <div class="panel-head">
-      <h2>Watchlist</h2>
-      <button class="close-panel" aria-label="Close">&times;</button>
-    </div>
-    <div class="panel-body">
-      <p>This is the Watchlist panel.</p>
-    </div>
-  </section>
-
-  <section id="creationPanel" class="panel hidden" aria-hidden="true">
-    <div class="panel-head">
-      <h2>Creation</h2>
-      <button class="close-panel" aria-label="Close">&times;</button>
-    </div>
-    <div class="panel-body">
-      <p>This is the Creation panel.</p>
-    </div>
-  </section>
-
-  <section id="libraryPanel" class="panel hidden" aria-hidden="true">
-    <div class="panel-head">
-      <h2>Library</h2>
-      <button class="close-panel" aria-label="Close">&times;</button>
-    </div>
-    <div class="panel-body">
-      <p>This is the Library panel.</p>
-    </div>
-  </section>
-
-  <section id="statisticsPanel" class="panel hidden" aria-hidden="true">
-    <div class="panel-head">
-      <h2>Statistics</h2>
-      <button class="close-panel" aria-label="Close">&times;</button>
-    </div>
-    <div class="panel-body">
-      <p>This is the Statistics panel.</p>
-    </div>
-  </section>
 
   <script src="data.js"></script>
   <script src="app.js"></script>
+
 </body>
 </html>
