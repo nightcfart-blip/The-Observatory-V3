@@ -1116,3 +1116,21 @@ textarea {
   text-align: center;
 }
 
+/* Airing and watching dates */
+
+#editAiring,
+#editWatching {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .1em;
+}
+
+#airingField label,
+#watchingField label {
+  color: var(--gold);
+}
+
+#editAiring::placeholder,
+#editWatching::placeholder {
+  letter-spacing: .08em;
+}
+
