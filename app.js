@@ -48,15 +48,16 @@ function init() {
   setupDetails();
   setupStatistics();
   fillMediaSelectors();
+  fillRatingSelector();
   renderLibrary();
   renderWatchlist();
 }
 
-/* ============================================
-   GENERAL HELPERS
-============================================ */
+/* ==========================================
+   HELPERS
+========================================== */
 
-function element(tag, className, text) {
+function element(tag, className = "", text) {
   const el = document.createElement(tag);
   if (className) el.className = className;
   if (text !== undefined) el.textContent = text;
@@ -76,49 +77,44 @@ function formatScore(value) {
 }
 
 function parseGenres(text) {
-  return [...new Set(
-    text.split(",").map(s => s.trim()).filter(Boolean)
-  )];
+  const result = [];
+  const seen = new Set();
+
+  text.split(",").forEach(raw => {
+    const name = raw.trim();
+    const key = name.toLowerCase();
+
+    if (name && !seen.has(key)) {
+      seen.add(key);
+      result.push(name);
+    }
+  });
+
+  return result;
 }
 
 function optionalNumber(id) {
   const raw = $(id).value.trim();
+
   if (!raw) return null;
+
   const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
 
-function safeText(value) {
-  return String(value ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[c]);
-}
-
 function formatMinutes(minutes) {
   const m = Math.round(minutes || 0);
-  const h = Math.floor(m / 60);
-  const remainder = m % 60;
-  return h ? `${h}h ${remainder}m` : `${m}m`;
-}
+  const hours = Math.floor(m / 60);
+  const rest = m % 60;
 
-function imageInto(container, item) {
-  getImageURL(item.type, item.id).then(url => {
-    if (!url || !container.isConnected) return;
-
-    const img = new Image();
-    img.alt = "";
-    img.src = url;
-    container.replaceChildren(img);
-  }).catch(console.error);
+  return hours ? `${hours}h ${rest}m` : `${m}m`;
 }
 
 function parentName(item) {
   const type = parentTypeOf(item.type);
+
   if (!type || !item.parentId) return "";
+
   return findEntry(type, item.parentId)?.title || "";
 }
 
@@ -136,9 +132,31 @@ function descendants(item) {
   return result;
 }
 
-/* ============================================
+function imageInto(container, item) {
+  getImageURL(item.type, item.id).then(url => {
+    if (!url || !container.isConnected) return;
+
+    const img = new Image();
+    img.alt = "";
+    img.src = url;
+
+    container.replaceChildren(img);
+  }).catch(console.error);
+}
+
+function escapeXML(text) {
+  return String(text ?? "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[c]);
+}
+
+/* ==========================================
    COMPASS
-============================================ */
+========================================== */
 
 function setupCompass() {
   const wrap = $("compassWrap");
@@ -151,6 +169,7 @@ function setupCompass() {
 
   function pointerAngle(x, y) {
     const r = wrap.getBoundingClientRect();
+
     return Math.atan2(
       y - (r.top + r.height / 2),
       x - (r.left + r.width / 2)
@@ -196,8 +215,10 @@ function setupCompass() {
     const dt = Math.max(1, now - state.lastTime);
 
     setRotation(state.rotation + delta);
-    state.velocity = Math.max(-15,
-      Math.min(15, delta / dt * 16));
+
+    state.velocity = Math.max(
+      -15, Math.min(15, delta / dt * 16)
+    );
 
     state.lastAngle = angle;
     state.lastTime = now;
@@ -208,6 +229,7 @@ function setupCompass() {
         e.pointerId !== state.pointerId) return;
 
     const moved = state.moved;
+
     state.dragging = false;
     state.pointerId = null;
 
@@ -224,25 +246,33 @@ function setupCompass() {
   }
 
   wrap.addEventListener("pointerup", e => finish(e));
+
   wrap.addEventListener("pointercancel",
     e => finish(e, true));
 
   wrap.addEventListener("wheel", e => {
     e.preventDefault();
-    state.velocity += Math.max(-5,
-      Math.min(5, e.deltaY * .012));
+
+    state.velocity += Math.max(
+      -5, Math.min(5, e.deltaY * .012)
+    );
   }, { passive: false });
 
   function activateTip(x, y) {
     const r = wrap.getBoundingClientRect();
+
     const dx = x - r.left - r.width / 2;
     const dy = y - r.top - r.height / 2;
 
     const distance = Math.hypot(dx, dy) / r.width;
+
     if (distance < .26 || distance > .52) return;
 
-    const screenAngle = Math.atan2(dy, dx) * 180 / Math.PI;
-    const local = (screenAngle - state.rotation + 36000) % 360;
+    const screenAngle =
+      Math.atan2(dy, dx) * 180 / Math.PI;
+
+    const local =
+      (screenAngle - state.rotation + 36000) % 360;
 
     const points = [
       [270, "watchlist"],
@@ -260,18 +290,26 @@ function setupCompass() {
 
   document.querySelectorAll(".tip").forEach(tip => {
     tip.addEventListener("click", e => {
-      if (e.detail === 0) openPage(tip.dataset.page);
+      if (e.detail === 0) {
+        openPage(tip.dataset.page);
+      }
     });
   });
 
   let lastFrame = performance.now();
 
   function animate(now) {
-    const frames = Math.min((now - lastFrame) / 16.667, 3);
+    const frames =
+      Math.min((now - lastFrame) / 16.667, 3);
+
     lastFrame = now;
 
-    if (!state.dragging && Math.abs(state.velocity) > .015) {
-      setRotation(state.rotation + state.velocity * frames);
+    if (!state.dragging &&
+        Math.abs(state.velocity) > .015) {
+      setRotation(
+        state.rotation + state.velocity * frames
+      );
+
       state.velocity *= Math.pow(.955, frames);
     }
 
@@ -281,9 +319,9 @@ function setupCompass() {
   requestAnimationFrame(animate);
 }
 
-/* ============================================
+/* ==========================================
    NAVIGATION
-============================================ */
+========================================== */
 
 function openPage(name) {
   state.currentPage = name;
@@ -304,9 +342,11 @@ function openPage(name) {
 
 function goHome() {
   state.currentPage = "home";
+
   document.querySelectorAll(".page").forEach(p =>
     p.classList.remove("active")
   );
+
   $("homePage").classList.remove("hidden");
 }
 
@@ -315,28 +355,25 @@ function setupNavigation() {
     b.addEventListener("click", goHome)
   );
 
-  $("libraryAddBtn").addEventListener("click", () =>
-    openPage("creation")
-  );
+  $("libraryAddBtn").onclick = () =>
+    openPage("creation");
 }
 
-/* ============================================
-   MEDIA OPTIONS
-============================================ */
+/* ==========================================
+   OPTIONS
+========================================== */
 
 function fillMediaSelectors() {
   ["editMedium", "watchMedium"].forEach(id => {
     const select = $(id);
     clear(select);
 
-    const first = new Option(
+    select.add(new Option(
       id === "watchMedium"
         ? "Media type (optional)"
         : "Not specified",
       ""
-    );
-
-    select.add(first);
+    ));
 
     MEDIA_TYPES.forEach(m =>
       select.add(new Option(m, m))
@@ -344,17 +381,119 @@ function fillMediaSelectors() {
   });
 }
 
-/* ============================================
-   CREATION AND EDITOR
-============================================ */
+function fillRatingSelector() {
+  const select = $("editRating");
+  clear(select);
+
+  select.add(new Option("Unrated", ""));
+
+  for (let half = 0; half <= 20; half++) {
+    const rating = half / 2;
+
+    select.add(new Option(
+      rating.toFixed(1), String(rating)
+    ));
+  }
+}
+
+/* ==========================================
+   HALF-STAR RENDERING
+========================================== */
+
+function createDisplayStars(container, rating) {
+  clear(container);
+
+  for (let i = 1; i <= 10; i++) {
+    const star = element("span", "display-star");
+
+    const base = element(
+      "span", "star-base", "★"
+    );
+
+    const fill = element(
+      "span", "star-fill", "★"
+    );
+
+    // Manual 0.5 ratings produce half stars.
+    // Calculated averages may create partial stars,
+    // e.g. 8.25 means the ninth star is 25% filled.
+
+    const fraction = rating === null
+      ? 0
+      : Math.max(0, Math.min(1, rating - (i - 1)));
+
+    fill.style.setProperty(
+      "--fill", (fraction * 100) + "%"
+    );
+
+    star.append(base, fill);
+    container.appendChild(star);
+  }
+}
+
+function renderStarEditor() {
+  const container = $("starRating");
+  clear(container);
+
+  const value = optionalNumber("editRating");
+  const rating = value ?? 0;
+
+  for (let i = 1; i <= 10; i++) {
+    const button = element("button", "edit-star");
+    button.type = "button";
+
+    const base = element(
+      "span", "star-base", "★"
+    );
+
+    const fill = element(
+      "span", "star-fill", "★"
+    );
+
+    const fraction = Math.max(
+      0, Math.min(1, rating - (i - 1))
+    );
+
+    fill.style.setProperty(
+      "--fill", (fraction * 100) + "%"
+    );
+
+    button.append(base, fill);
+
+    button.setAttribute(
+      "aria-label",
+      `Star ${i}: choose ${i - .5} or ${i}`
+    );
+
+    button.onclick = e => {
+      const r = button.getBoundingClientRect();
+      const relative = e.clientX - r.left;
+
+      const chosen = relative < r.width / 2
+        ? i - .5
+        : i;
+
+      $("editRating").value = String(chosen);
+      renderStarEditor();
+    };
+
+    container.appendChild(button);
+  }
+}
+
+/* ==========================================
+   CREATION
+========================================== */
 
 function setupCreation() {
   document.querySelectorAll("[data-create]").forEach(b => {
-    b.addEventListener("click", () =>
-      openEditor(b.dataset.create)
-    );
+    b.onclick = () => openEditor(b.dataset.create);
   });
 }
+
+/* ==========================================
+   EDITOR
+========================================== */
 
 function setupEditor() {
   $("cancelEditor").onclick = closeEditor;
@@ -367,23 +506,25 @@ function setupEditor() {
     await saveEditor();
   };
 
-  $("editRating").addEventListener("input", renderStarEditor);
+  $("editRating").onchange = renderStarEditor;
+
+  $("editParent").onchange = updateInheritedGenrePreview;
 
   $("deleteEntryBtn").onclick = deleteCurrentEntry;
 
-  $("bannerInput").addEventListener("change", e => {
+  $("bannerInput").onchange = e => {
     const file = e.target.files?.[0];
 
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        alert("Please choose an image.");
-        return;
-      }
+    if (!file) return;
 
-      state.pendingImage = file;
-      showEditorImage(file);
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image.");
+      return;
     }
-  });
+
+    state.pendingImage = file;
+    showEditorImage(file);
+  };
 
   $("removeBanner").onclick = () => {
     state.pendingImage = null;
@@ -393,7 +534,9 @@ function setupEditor() {
   };
 
   $("editorOverlay").addEventListener("click", e => {
-    if (e.target === $("editorOverlay")) closeEditor();
+    if (e.target === $("editorOverlay")) {
+      closeEditor();
+    }
   });
 }
 
@@ -408,8 +551,8 @@ function showEditorImage(blob) {
   clearPreviewURL();
 
   state.imagePreviewURL = URL.createObjectURL(blob);
-  const img = new Image();
 
+  const img = new Image();
   img.alt = "Banner preview";
   img.src = state.imagePreviewURL;
 
@@ -418,6 +561,7 @@ function showEditorImage(blob) {
 
 async function openEditor(type, id = null, parentId = "") {
   const entry = id ? findEntry(type, id) : null;
+
   if (id && !entry) return;
 
   state.editType = type;
@@ -430,14 +574,15 @@ async function openEditor(type, id = null, parentId = "") {
 
   $("editId").value = id || "";
   $("editType").value = type;
+
   $("editorHeading").textContent =
-    (entry ? "Edit " : "Create ") + TYPE_NAMES[type];
+    (entry ? "Edit " : "Create ") +
+    TYPE_NAMES[type];
 
   $("editTitle").value = entry?.title || "";
   $("editMedium").value = entry?.medium || "";
   $("editRelease").value = entry?.release || "";
   $("editDuration").value = entry?.duration ?? "";
-  $("editRating").value = entry?.rating ?? "";
   $("editEpisodeNumber").value =
     entry?.episodeNumber ?? "";
 
@@ -461,23 +606,65 @@ async function openEditor(type, id = null, parentId = "") {
     "hidden", type !== "episode"
   );
 
-  $("ratingField").classList.toggle(
-    "hidden", type === "group"
+  // ONLY Productions may have manually entered genres.
+
+  $("manualGenresField").classList.toggle(
+    "hidden", type !== "production"
   );
 
-  $("deleteEntryBtn").classList.toggle("hidden", !id);
+  // Groups and Seasons show inherited genres.
 
-  fillParentSelector(type, entry?.parentId || parentId);
+  $("autoGenresField").classList.toggle(
+    "hidden",
+    type !== "group" && type !== "season"
+  );
+
+  // Rating input only exists for:
+  // - Episodes
+  // - Productions WITHOUT Seasons.
+
+  const manualAllowed = canRateManually(type, id);
+
+  $("ratingField").classList.toggle(
+    "hidden", !manualAllowed
+  );
+
+  const stored = validManualRating(entry?.rating);
+
+  // Old ratings can be displayed at the nearest
+  // half-star step if they came from older versions.
+
+  const manualValue = normalizeHalfRating(stored);
+  $("editRating").value =
+    manualValue === null ? "" : String(manualValue);
+
+  fillParentSelector(
+    type, entry?.parentId || parentId
+  );
+
+  updateInheritedGenrePreview();
   renderStarEditor();
+
+  $("deleteEntryBtn").classList.toggle(
+    "hidden", !id
+  );
 
   $("bannerPreview").textContent = "No banner";
   $("editorOverlay").classList.remove("hidden");
 
   if (entry) {
-    const expectedId = entry.id;
-    const blob = await loadImage(type, id).catch(() => null);
+    const expectedType = type;
+    const expectedId = id;
 
-    if (blob && state.editId === expectedId) {
+    const blob = await loadImage(type, id)
+      .catch(() => null);
+
+    if (
+      blob &&
+      state.editType === expectedType &&
+      state.editId === expectedId &&
+      !$("editorOverlay").classList.contains("hidden")
+    ) {
       showEditorImage(blob);
     }
   }
@@ -493,7 +680,8 @@ function fillParentSelector(type, selectedId) {
   const required = type !== "production";
 
   $("parentLabel").textContent =
-    TYPE_NAMES[parentType] + (required ? "" : " (optional)");
+    TYPE_NAMES[parentType] +
+    (required ? "" : " (optional)");
 
   select.add(new Option(
     required
@@ -509,28 +697,32 @@ function fillParentSelector(type, selectedId) {
   select.value = selectedId || "";
 }
 
-function renderStarEditor() {
-  const container = $("starRating");
-  clear(container);
+function updateInheritedGenrePreview() {
+  const type = state.editType;
 
-  const current = optionalNumber("editRating") ?? 0;
-
-  for (let i = 1; i <= 10; i++) {
-    const b = element("button",
-      "star-button" + (i <= current ? " active" : ""),
-      i <= current ? "★" : "☆"
-    );
-
-    b.type = "button";
-    b.setAttribute("aria-label", `Rate ${i}/10`);
-
-    b.onclick = () => {
-      $("editRating").value = i;
-      renderStarEditor();
-    };
-
-    container.appendChild(b);
+  if (type !== "group" && type !== "season") {
+    return;
   }
+
+  let source = null;
+
+  if (type === "group" && state.editId) {
+    source = findEntry("group", state.editId);
+  }
+
+  if (type === "season") {
+    source = findEntry(
+      "production", $("editParent").value
+    );
+  }
+
+  const genres = effectiveGenres(source);
+
+  $("autoMainGenres").textContent =
+    genres.mainGenres.join(" · ") || "No genres yet";
+
+  $("autoSecondaryGenres").textContent =
+    genres.secondaryGenres.join(" · ");
 }
 
 async function saveEditor() {
@@ -548,55 +740,79 @@ async function saveEditor() {
 
   if (["season", "episode"].includes(type) &&
       !parentId) {
-    alert("Select a parent entry first.");
-    return;
+    return alert("Select a parent first.");
   }
 
   if (parentId) {
     const parentType = parentTypeOf(type);
 
     if (!findEntry(parentType, parentId)) {
-      alert("That parent no longer exists.");
-      return;
+      return alert("Parent entry no longer exists.");
     }
   }
 
-  const rating = optionalNumber("editRating");
   const duration = optionalNumber("editDuration");
-  const number = optionalNumber("editEpisodeNumber");
-
-  if (rating !== null && (rating < 0 || rating > 10)) {
-    return alert("Rating must be between 0 and 10.");
-  }
+  const episodeNumber =
+    optionalNumber("editEpisodeNumber");
 
   if (duration !== null &&
       (!Number.isInteger(duration) || duration < 0)) {
     return alert("Duration must be a nonnegative whole number.");
   }
 
-  if (type === "episode" && number !== null &&
-      (!Number.isInteger(number) || number < 1)) {
+  if (type === "episode" &&
+      episodeNumber !== null &&
+      (!Number.isInteger(episodeNumber) ||
+       episodeNumber < 1)) {
     return alert("Episode number must be a positive integer.");
+  }
+
+  // Preserve an existing Production's manual rating
+  // when Seasons are present, but ignore it in
+  // all calculated ratings.
+  //
+  // This means deleting all Seasons later will
+  // restore its previous manual rating.
+
+  const existing = id ? findEntry(type, id) : null;
+
+  let rating = existing?.rating ?? null;
+
+  if (canRateManually(type, id)) {
+    rating = normalizeHalfRating(
+      $("editRating").value
+    );
+  } else if (type === "group" ||
+             type === "season") {
+    rating = null;
   }
 
   const values = {
     title,
     medium: type === "production"
-      ? $("editMedium").value : "",
+      ? $("editMedium").value
+      : "",
     parentId,
-    episodeNumber: type === "episode" ? number : null,
+    episodeNumber: type === "episode"
+      ? episodeNumber
+      : null,
     release: $("editRelease").value.trim(),
     duration,
-    rating: type === "group" ? null : rating,
-    mainGenres: parseGenres($("editMainGenres").value),
-    secondaryGenres: parseGenres(
-      $("editSecondaryGenres").value
-    ),
+    rating,
+
+    // Only Productions store editable genres.
+    // Other entries calculate them dynamically.
+
+    mainGenres: type === "production"
+      ? parseGenres($("editMainGenres").value)
+      : [],
+
+    secondaryGenres: type === "production"
+      ? parseGenres($("editSecondaryGenres").value)
+      : [],
+
     notes: $("editNotes").value
   };
-
-  // Write image first so failure does not silently
-  // create an entry without its selected image.
 
   const entryId = id || createId();
 
@@ -608,46 +824,46 @@ async function saveEditor() {
       await saveImage(type, entryId, state.pendingImage);
       invalidateImageURL(type, entryId);
     }
-  } catch (err) {
-    console.error(err);
-    alert("The banner could not be saved.");
-    return;
+  } catch (error) {
+    console.error(error);
+    return alert("Banner image could not be saved.");
   }
 
   if (id) {
     updateEntry(type, id, values);
   } else {
-    createEntry(type, { ...values, id: entryId });
+    createEntry(type, {
+      ...values,
+      id: entryId
+    });
   }
 
   closeEditor();
 
-  if (state.detailType === type &&
-      state.detailId === id && id) {
-    await openDetail(type, id);
-  } else {
-    await openDetail(type, entryId);
-  }
-
   renderLibrary();
   renderStatistics();
+
+  await openDetail(type, entryId);
 }
 
 function closeEditor() {
   $("editorOverlay").classList.add("hidden");
+
   state.editType = null;
   state.editId = null;
   state.pendingImage = undefined;
+
   clearPreviewURL();
 }
 
 async function deleteCurrentEntry() {
   const type = state.editType;
   const id = state.editId;
+
   if (!type || !id) return;
 
   const warning = type === "group"
-    ? "Delete this Group? Productions will remain independent."
+    ? "Delete this Group? Its Productions will remain independent."
     : ["production", "season"].includes(type)
       ? "Delete this entry and all its descendants?"
       : "Delete this entry?";
@@ -655,7 +871,9 @@ async function deleteCurrentEntry() {
   if (!confirm(warning)) return;
 
   const entry = findEntry(type, id);
-  const affected = entry ? [entry, ...descendants(entry)] : [];
+  const affected = entry
+    ? [entry, ...descendants(entry)]
+    : [];
 
   removeEntry(type, id);
 
@@ -663,8 +881,8 @@ async function deleteCurrentEntry() {
     try {
       await deleteImage(item.type, item.id);
       invalidateImageURL(item.type, item.id);
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
     }
   }
 
@@ -674,21 +892,25 @@ async function deleteCurrentEntry() {
   renderStatistics();
 }
 
-/* ============================================
-   INDIVIDUAL ENTRY DETAILS
-============================================ */
+/* ==========================================
+   ENTRY DETAILS
+========================================== */
 
 function setupDetails() {
   $("closeDetail").onclick = closeDetail;
 
   $("editDetail").onclick = () => {
     if (state.detailType && state.detailId) {
-      openEditor(state.detailType, state.detailId);
+      openEditor(
+        state.detailType, state.detailId
+      );
     }
   };
 
   $("detailOverlay").addEventListener("click", e => {
-    if (e.target === $("detailOverlay")) closeDetail();
+    if (e.target === $("detailOverlay")) {
+      closeDetail();
+    }
   });
 }
 
@@ -714,69 +936,72 @@ async function openDetail(type, id) {
   clear(banner);
 
   getImageURL(type, id).then(url => {
-    if (!url || state.detailId !== id ||
-        state.detailType !== type) return;
+    if (
+      !url ||
+      state.detailId !== id ||
+      state.detailType !== type
+    ) return;
 
     const img = new Image();
     img.alt = "";
     img.src = url;
+
     banner.prepend(img);
   }).catch(console.error);
 
   const medium = effectiveMedium(item);
 
   $("detailMedium").textContent =
-    type === "group" ? "" :
-    type === "production" ? medium :
-    medium ? medium : "";
+    type === "group" ? "" : medium;
 
   const rating = effectiveRating(item);
 
-  const stars = $("detailStars");
-  clear(stars);
-
-  for (let i = 1; i <= 10; i++) {
-    const star = element(
-      "span",
-      rating !== null && i <= Math.round(rating)
-        ? "filled" : "",
-      rating !== null && i <= Math.round(rating)
-        ? "★" : "☆"
-    );
-    stars.appendChild(star);
-  }
+  createDisplayStars(
+    $("detailStars"), rating
+  );
 
   $("detailRating").textContent =
-    rating === null ? "Unrated" :
-    `(${rating.toFixed(1)})`;
+    rating === null
+      ? "Unrated"
+      : `(${rating.toFixed(1)})`;
 
   const extra = [];
 
   if (item.release) extra.push(item.release);
 
-  if (type === "episode" && item.duration !== null &&
-      item.duration !== undefined) {
-    extra.push(formatMinutes(Number(item.duration)));
+  if (type === "episode") {
+    if (item.episodeNumber != null) {
+      extra.unshift("Episode " + item.episodeNumber);
+    }
+
+    if (item.duration != null) {
+      extra.push(
+        formatMinutes(Number(item.duration))
+      );
+    }
   }
 
-  if (type === "episode" && item.episodeNumber != null) {
-    extra.unshift("Episode " + item.episodeNumber);
-  }
+  $("detailExtra").textContent =
+    extra.join(" · ");
 
-  $("detailExtra").textContent = extra.join(" · ");
+  // Automatic genres.
+  // Episodes have no genres at all.
+
+  const genres = effectiveGenres(item);
 
   $("detailMainGenres").textContent =
-    (item.mainGenres || []).join(" · ");
+    genres.mainGenres.join(" · ");
 
   $("detailSecondaryGenres").textContent =
-    (item.secondaryGenres || []).join(" · ");
+    genres.secondaryGenres.join(" · ");
 
-  $("detailNotes").textContent = item.notes || "";
+  $("detailNotes").textContent =
+    item.notes || "";
 
-  await renderDetailChildren(item);
+  renderDetailChildren(item);
 }
 
-async function renderDetailChildren(item) {
+function renderDetailChildren(item) {
   const container = $("detailChildren");
   clear(container);
 
@@ -788,58 +1013,84 @@ async function renderDetailChildren(item) {
 
   if (!childType) return;
 
-  const heading = element("div", "children-heading-row");
-
-  const title = element(
-    "div", "children-heading",
-    childType === "production" ? "Productions" :
-    childType === "season" ? "Seasons" : "Episodes"
+  const heading = element(
+    "div", "children-heading-row"
   );
 
-  const add = element("button", "child-add", "+ Add");
-  add.onclick = () => openEditor(childType, null, item.id);
+  const label = element(
+    "div", "children-heading",
+    childType === "production" ? "Productions" :
+    childType === "season" ? "Seasons" :
+    "Episodes"
+  );
 
-  heading.append(title, add);
+  const add = element(
+    "button", "child-add", "+ Add"
+  );
+
+  add.onclick = () =>
+    openEditor(childType, null, item.id);
+
+  heading.append(label, add);
   container.appendChild(heading);
 
-  const children = getChildren(item.type, item.id)
-    .slice()
-    .sort((a,b) => {
-      if (childType === "episode") {
-        return (a.episodeNumber ?? Infinity) -
-          (b.episodeNumber ?? Infinity);
-      }
-      return a.createdAt - b.createdAt;
-    });
+  const children = getChildren(
+    item.type, item.id
+  ).slice().sort((a, b) => {
+    if (childType === "episode") {
+      return (
+        (a.episodeNumber ?? Infinity) -
+        (b.episodeNumber ?? Infinity)
+      ) || a.createdAt - b.createdAt;
+    }
+
+    return a.createdAt - b.createdAt;
+  });
 
   if (!children.length) {
-    container.appendChild(emptyMessage("No entries yet."));
+    container.appendChild(
+      emptyMessage("No entries yet.")
+    );
     return;
   }
 
   if (item.type === "group") {
-    const strip = element("div", "production-strip");
+    const strip = element(
+      "div", "production-strip"
+    );
 
     children.forEach(child => {
-      const tile = element("button", "production-tile");
+      const tile = element(
+        "button", "production-tile"
+      );
+
       const art = element(
         "div", "production-tile-art", "✦"
       );
 
       imageInto(art, child);
 
-      const bottom = element("div", "production-tile-bottom");
-      bottom.appendChild(element("strong", "", child.title));
+      const bottom = element(
+        "div", "production-tile-bottom"
+      );
+
+      bottom.appendChild(
+        element("strong", "", child.title)
+      );
 
       const score = effectiveRating(child);
 
       bottom.appendChild(element(
         "small", "",
-        score === null ? "Unrated" : `★ ${score.toFixed(1)}`
+        score === null
+          ? "Unrated"
+          : `★ ${score.toFixed(1)}`
       ));
 
       tile.append(art, bottom);
-      tile.onclick = () => openDetail(child.type, child.id);
+
+      tile.onclick = () =>
+        openDetail(child.type, child.id);
 
       strip.appendChild(tile);
     });
@@ -851,17 +1102,26 @@ async function renderDetailChildren(item) {
     const list = element("div", "season-list");
 
     children.forEach(child => {
-      const row = element("button", "season-row");
-      row.appendChild(element("span", "", child.title));
+      const row = element(
+        "button", "season-row"
+      );
+
+      row.appendChild(
+        element("span", "", child.title)
+      );
 
       const score = effectiveRating(child);
 
       row.appendChild(element(
         "span", "",
-        score === null ? "›" : `★ ${score.toFixed(1)}  ›`
+        score === null
+          ? "Unrated ›"
+          : `★ ${score.toFixed(1)} ›`
       ));
 
-      row.onclick = () => openDetail(child.type, child.id);
+      row.onclick = () =>
+        openDetail(child.type, child.id);
+
       list.appendChild(row);
     });
 
@@ -872,7 +1132,9 @@ async function renderDetailChildren(item) {
     const grid = element("div", "episode-grid");
 
     children.forEach((child, index) => {
-      const tile = element("button", "episode-tile");
+      const tile = element(
+        "button", "episode-tile"
+      );
 
       imageInto(tile, child);
 
@@ -885,10 +1147,14 @@ async function renderDetailChildren(item) {
 
       tile.appendChild(element(
         "small", "",
-        score === null ? "" : `★ ${score.toFixed(1)}`
+        score === null
+          ? ""
+          : `★ ${score.toFixed(1)}`
       ));
 
-      tile.onclick = () => openDetail(child.type, child.id);
+      tile.onclick = () =>
+        openDetail(child.type, child.id);
+
       grid.appendChild(tile);
     });
 
@@ -896,9 +1162,9 @@ async function renderDetailChildren(item) {
   }
 }
 
-/* ============================================
+/* ==========================================
    LIBRARY
-============================================ */
+========================================== */
 
 function setupLibrary() {
   $("librarySearch").oninput = renderLibrary;
@@ -910,8 +1176,10 @@ function setupLibrary() {
 }
 
 function renderLibrary() {
-  const search = $("librarySearch").value.toLowerCase().trim();
-  const sorting = $("librarySort").value;
+  const search =
+    $("librarySearch").value.toLowerCase().trim();
+
+  const sort = $("librarySort").value;
 
   const types = [...document.querySelectorAll(
     "[data-filter]:checked"
@@ -920,70 +1188,97 @@ function renderLibrary() {
   const items = allEntries().filter(item => {
     if (!types.includes(item.type)) return false;
 
-    const searchable = [
-      item.title, item.medium, parentName(item),
+    const text = [
+      item.title,
+      effectiveMedium(item),
+      parentName(item),
       ...genreList(item)
     ].join(" ").toLowerCase();
 
-    return searchable.includes(search);
+    return text.includes(search);
   });
 
-  items.sort((a,b) => {
-    const scoreA = effectiveRating(a);
-    const scoreB = effectiveRating(b);
-
+  items.sort((a, b) => {
     const aName = a.title.toLowerCase();
     const bName = b.title.toLowerCase();
 
-    const releaseA = releaseTimestamp(a.release);
-    const releaseB = releaseTimestamp(b.release);
+    const scoreA = effectiveRating(a);
+    const scoreB = effectiveRating(b);
 
-    switch (sorting) {
-      case "az": return aName.localeCompare(bName);
-      case "za": return bName.localeCompare(aName);
+    const releaseA =
+      releaseTimestamp(a.release);
+
+    const releaseB =
+      releaseTimestamp(b.release);
+
+    switch (sort) {
+      case "az":
+        return aName.localeCompare(bName);
+
+      case "za":
+        return bName.localeCompare(aName);
+
       case "oldest":
         return a.createdAt - b.createdAt;
+
       case "medium":
         return effectiveMedium(a).localeCompare(
           effectiveMedium(b)
         ) || aName.localeCompare(bName);
+
       case "ratingHigh":
         return (scoreB ?? -1) - (scoreA ?? -1);
+
       case "ratingLow":
         return (scoreA ?? 11) - (scoreB ?? 11);
+
       case "releaseNew":
         return (releaseB ?? -Infinity) -
-          (releaseA ?? -Infinity);
+               (releaseA ?? -Infinity);
+
       case "releaseOld":
         return (releaseA ?? Infinity) -
-          (releaseB ?? Infinity);
+               (releaseB ?? Infinity);
+
       default:
         return b.createdAt - a.createdAt;
     }
   });
 
   $("libraryCount").textContent =
-    `${items.length} ${items.length === 1 ? "entry" : "entries"}`;
+    `${items.length} ${
+      items.length === 1 ? "entry" : "entries"
+    }`;
 
   const list = $("libraryItems");
   clear(list);
 
   if (!items.length) {
-    list.appendChild(emptyMessage("No entries to display."));
+    list.appendChild(
+      emptyMessage("No entries to display.")
+    );
     return;
   }
 
   items.forEach(item => {
-    const row = element("button", "library-entry");
+    const row = element(
+      "button", "library-entry"
+    );
 
     const art = element(
       "div", "entry-art", SYMBOLS[item.type]
     );
+
     imageInto(art, item);
 
-    const info = element("div", "entry-info");
+    const info = element(
+      "div", "entry-info"
+    );
 
-    info.appendChild(element("strong", "", item.title));
+    info.appendChild(
+      element("strong", "", item.title)
+    );
+
     info.appendChild(element(
       "small", "",
       [
@@ -998,21 +1293,28 @@ function renderLibrary() {
 
     const rating = element(
       "span", "entry-score",
-      score === null ? "" : `★ ${score.toFixed(1)}`
+      score === null
+        ? ""
+        : `★ ${score.toFixed(1)}`
     );
 
-    const arrow = element("span", "entry-arrow", "›");
+    row.append(
+      art,
+      info,
+      rating,
+      element("span", "entry-arrow", "›")
+    );
 
-    row.append(art, info, rating, arrow);
-    row.onclick = () => openDetail(item.type, item.id);
+    row.onclick = () =>
+      openDetail(item.type, item.id);
 
     list.appendChild(row);
   });
 }
 
-/* ============================================
+/* ==========================================
    WATCHLIST
-============================================ */
+========================================== */
 
 function setupWatchlist() {
   $("watchlistForm").onsubmit = e => {
@@ -1040,17 +1342,24 @@ function renderWatchlist() {
   clear(list);
 
   if (!trackerData.watchlist.length) {
-    list.appendChild(emptyMessage("Your watchlist is empty."));
+    list.appendChild(
+      emptyMessage("Your watchlist is empty.")
+    );
     return;
   }
 
   trackerData.watchlist.forEach(item => {
     const row = element("div", "watch-item");
 
-    const checkbox = element("input", "watch-check");
+    const checkbox = element(
+      "input", "watch-check"
+    );
+
     checkbox.type = "checkbox";
+
     checkbox.setAttribute(
-      "aria-label", `Move ${item.title} into Library`
+      "aria-label",
+      `Move ${item.title} into Library`
     );
 
     checkbox.onchange = () => {
@@ -1062,9 +1371,10 @@ function renderWatchlist() {
         release: item.release
       });
 
-      trackerData.watchlist = trackerData.watchlist.filter(
-        x => x.id !== item.id
-      );
+      trackerData.watchlist =
+        trackerData.watchlist.filter(
+          x => x.id !== item.id
+        );
 
       saveDatabase();
       renderWatchlist();
@@ -1073,18 +1383,27 @@ function renderWatchlist() {
     };
 
     const info = element("div", "watch-text");
-    info.appendChild(element("strong", "", item.title));
+
+    info.appendChild(
+      element("strong", "", item.title)
+    );
+
     info.appendChild(element(
       "small", "",
-      [item.medium, item.release].filter(Boolean).join(" · ")
+      [item.medium, item.release]
+        .filter(Boolean).join(" · ")
     ));
 
-    const del = element("button", "watch-delete", "×");
+    const del = element(
+      "button", "watch-delete", "×"
+    );
 
     del.onclick = () => {
-      trackerData.watchlist = trackerData.watchlist.filter(
-        x => x.id !== item.id
-      );
+      trackerData.watchlist =
+        trackerData.watchlist.filter(
+          x => x.id !== item.id
+        );
+
       saveDatabase();
       renderWatchlist();
     };
@@ -1094,162 +1413,92 @@ function renderWatchlist() {
   });
 }
 
-/* ============================================
-   STATISTICS DATA
-============================================ */
+/* ==========================================
+   WATCH TIME
+========================================== */
 
-// Durations:
-// Episodes with entered durations are counted individually.
-// A Season's duration is used only when its Episodes
-// have no durations.
-// A Production's duration is used only when none of
-// its Seasons/Episodes provide durations.
+// Where more detailed durations are present,
+// they take priority over a parent duration.
 
 function productionMinutes(production) {
-  const seasons = getChildren("production", production.id);
-  let sum = 0;
-  let known = false;
-
-  for (const season of seasons) {
-    const episodes = getChildren("season", season.id);
-    const durations = episodes
-      .map(e => e.duration)
-      .filter(v => v !== null && v !== undefined)
-      .map(Number)
-      .filter(Number.isFinite);
-
-    if (durations.length) {
-      sum += durations.reduce((a,b) => a+b,0);
-      known = true;
-    } else if (season.duration !== null &&
-               season.duration !== undefined) {
-      sum += Number(season.duration) || 0;
-      known = true;
-    }
-  }
-
-  if (known) return sum;
-
-  return Number(production.duration) || 0;
-}
-
-function statisticsData() {
-  const productions = trackerData.productions;
-  const ratings = productions
-    .map(effectiveRating)
-    .filter(v => v !== null);
-
-  const media = new Map();
-  const genres = new Map();
-  const genreSets = new Map();
-  const overlaps = new Map();
-  const points = [];
-
-  const timeline = new Map();
-
-  for (const p of productions) {
-    const medium = p.medium || "Unspecified";
-    const minutes = productionMinutes(p);
-
-    media.set(medium, (media.get(medium) || 0) + minutes);
-
-    const uniqueGenres = [...new Set(
-      genreList(p).map(g => g.toLowerCase())
-    )];
-
-    uniqueGenres.forEach(g => {
-      genres.set(g, (genres.get(g) || 0) + 1);
-    });
-
-    genreSets.set(p.id, new Set(uniqueGenres));
-
-    for (let i = 0; i < uniqueGenres.length; i++) {
-      for (let j = i + 1; j < uniqueGenres.length; j++) {
-        const key = [uniqueGenres[i], uniqueGenres[j]]
-          .sort().join("|");
-        overlaps.set(key, (overlaps.get(key) || 0) + 1);
-      }
-    }
-
-    const rating = effectiveRating(p);
-    if (rating !== null) {
-      points.push({
-        title: p.title,
-        x: minutes,
-        y: rating
-      });
-    }
-
-    // Release year is used as a timeline proxy.
-    // This is NOT a personal viewing history.
-    const year = String(p.release || "")
-      .match(/\b(?:18|19|20|21)\d{2}\b/)?.[0];
-
-    if (year) {
-      timeline.set(year, (timeline.get(year) || 0) + minutes);
-    }
-  }
-
-  const total = productions.reduce(
-    (sum,p) => sum + productionMinutes(p), 0
+  const seasons = getChildren(
+    "production", production.id
   );
 
-  const ranked = productions
-    .map(p => ({
-      title: p.title,
-      rating: effectiveRating(p)
-    }))
-    .filter(p => p.rating !== null)
-    .sort((a,b) => b.rating - a.rating);
+  if (!seasons.length) {
+    return Number(production.duration) || 0;
+  }
 
-  return {
-    productions,
-    total,
-    ratings,
-    average: ratings.length
-      ? ratings.reduce((a,b) => a+b,0) / ratings.length
-      : null,
-    media: [...media].map(([name,value]) => ({name,value})),
-    genres: [...genres].map(([name,value]) => ({name,value}))
-      .sort((a,b) => b.value - a.value),
-    genreSets,
-    overlaps: [...overlaps].map(([key,value]) => ({
-      name: key.replace("|", " + "),
-      pair: key.split("|"),
-      value
-    })).sort((a,b) => b.value - a.value),
-    points,
-    ranked,
-    timeline: [...timeline].sort((a,b) =>
-      Number(a[0]) - Number(b[0])
-    ).map(([name,value]) => ({name,value}))
-  };
+  let total = 0;
+  let hasDetailedDuration = false;
+
+  seasons.forEach(season => {
+    const episodes = getChildren(
+      "season", season.id
+    );
+
+    const durations = episodes
+      .map(e => e.duration)
+      .filter(v => v !== null &&
+                   v !== undefined &&
+                   Number.isFinite(Number(v)));
+
+    if (durations.length) {
+      total += durations.reduce(
+        (sum, v) => sum + Number(v), 0
+      );
+
+      hasDetailedDuration = true;
+    } else if (
+      season.duration !== null &&
+      season.duration !== undefined
+    ) {
+      total += Number(season.duration) || 0;
+      hasDetailedDuration = true;
+    }
+  });
+
+  return hasDetailedDuration
+    ? total
+    : Number(production.duration) || 0;
 }
 
-/* ============================================
-   STATISTICS CONFIGURATION
-============================================ */
+/* ==========================================
+   STATISTICS
+========================================== */
 
 const METRICS = {
   watchTime: {
     name: "Total Watch Time",
-    diagrams: ["line", "stacked", "treemap", "ranked"]
+    diagrams: [
+      "line", "stacked", "treemap", "ranked"
+    ]
   },
   media: {
     name: "Media Breakdown",
-    diagrams: ["donut", "stacked", "treemap", "ranked"]
+    diagrams: [
+      "donut", "stacked", "treemap", "ranked"
+    ]
   },
   genres: {
     name: "Genre Distribution",
-    diagrams: ["donut", "stacked", "treemap", "radar", "ranked"]
+    diagrams: [
+      "donut", "stacked", "treemap",
+      "radar", "ranked"
+    ]
   },
   overlap: {
     name: "Genre Overlapping",
-    diagrams: ["venn", "upset", "chord", "network", "ranked"]
+    diagrams: [
+      "venn", "upset", "chord",
+      "network", "ranked"
+    ]
   },
   ratings: {
     name: "Rating Distribution",
-    diagrams: ["histogram", "box", "stacked"]
+    diagrams: [
+      "histogram", "box", "stacked"
+    ]
   },
   highest: {
     name: "Highest Rated",
@@ -1278,16 +1527,24 @@ const DIAGRAMS = {
 };
 
 const COLORS = [
-  "#f3dda0", "#c99e59", "#997342", "#ead1a0",
-  "#796b57", "#b5a183", "#876e48", "#dcc080"
+  "#f3dda0",
+  "#c99e59",
+  "#997342",
+  "#ead1a0",
+  "#796b57",
+  "#b5a183",
+  "#876e48",
+  "#dcc080"
 ];
 
 function setupStatistics() {
   const metric = $("statMetric");
 
-  Object.entries(METRICS).forEach(([key,item]) =>
-    metric.add(new Option(item.name, key))
-  );
+  Object.entries(METRICS).forEach(([id, item]) => {
+    metric.add(
+      new Option(item.name, id)
+    );
+  });
 
   metric.value = "genres";
 
@@ -1297,48 +1554,183 @@ function setupStatistics() {
   };
 
   $("statDiagram").onchange = renderStatistics;
+
   fillDiagramSelector();
 }
 
 function fillDiagramSelector() {
-  const key = $("statMetric").value;
+  const metric = $("statMetric").value;
   const select = $("statDiagram");
-  const existing = select.value;
+  const previous = select.value;
 
   clear(select);
 
-  METRICS[key].diagrams.forEach(id =>
-    select.add(new Option(DIAGRAMS[id], id))
+  METRICS[metric].diagrams.forEach(id => {
+    select.add(new Option(DIAGRAMS[id], id));
+  });
+
+  if (METRICS[metric].diagrams.includes(previous)) {
+    select.value = previous;
+  }
+}
+
+function statisticsData() {
+  const productions = trackerData.productions;
+
+  const ratings = productions
+    .map(effectiveRating)
+    .filter(r => r !== null);
+
+  const media = new Map();
+  const genres = new Map();
+  const overlaps = new Map();
+  const genreSets = new Map();
+  const timeline = new Map();
+
+  const points = [];
+
+  productions.forEach(p => {
+    const minutes = productionMinutes(p);
+    const medium = p.medium || "Unspecified";
+
+    media.set(
+      medium,
+      (media.get(medium) || 0) + minutes
+    );
+
+    const uniqueGenres = [...new Set(
+      genreList(p).map(g =>
+        g.toLowerCase()
+      )
+    )];
+
+    genreSets.set(
+      p.id,
+      new Set(uniqueGenres)
+    );
+
+    uniqueGenres.forEach(g => {
+      genres.set(
+        g,
+        (genres.get(g) || 0) + 1
+      );
+    });
+
+    for (let i = 0; i < uniqueGenres.length; i++) {
+      for (let j = i + 1;
+           j < uniqueGenres.length; j++) {
+
+        const key = [
+          uniqueGenres[i],
+          uniqueGenres[j]
+        ].sort().join("|");
+
+        overlaps.set(
+          key,
+          (overlaps.get(key) || 0) + 1
+        );
+      }
+    }
+
+    const rating = effectiveRating(p);
+
+    if (rating !== null) {
+      points.push({
+        title: p.title,
+        x: minutes,
+        y: rating
+      });
+    }
+
+    const year = String(p.release || "")
+      .match(/\b(?:18|19|20|21)\d{2}\b/)?.[0];
+
+    if (year) {
+      timeline.set(
+        year,
+        (timeline.get(year) || 0) + minutes
+      );
+    }
+  });
+
+  const total = productions.reduce(
+    (sum, p) => sum + productionMinutes(p),
+    0
   );
 
-  if (METRICS[key].diagrams.includes(existing)) {
-    select.value = existing;
-  } else {
-    select.selectedIndex = 0;
-  }
+  const ranked = productions
+    .map(p => ({
+      title: p.title,
+      rating: effectiveRating(p)
+    }))
+    .filter(p => p.rating !== null)
+    .sort((a,b) => b.rating - a.rating);
+
+  return {
+    productions,
+    total,
+    ratings,
+    average: ratings.length
+      ? ratings.reduce((a,b) => a+b,0) /
+        ratings.length
+      : null,
+
+    media: [...media].map(([name,value]) =>
+      ({name,value})
+    ),
+
+    genres: [...genres]
+      .map(([name,value]) => ({name,value}))
+      .sort((a,b) => b.value-a.value),
+
+    overlaps: [...overlaps]
+      .map(([key,value]) => ({
+        name: key.replace("|"," + "),
+        pair: key.split("|"),
+        value
+      }))
+      .sort((a,b) => b.value-a.value),
+
+    genreSets,
+    points,
+    ranked,
+
+    timeline: [...timeline]
+      .sort((a,b) => Number(a[0])-Number(b[0]))
+      .map(([name,value]) => ({name,value}))
+  };
 }
 
 function selectedData(stats, metric) {
   switch (metric) {
     case "watchTime":
       return stats.timeline;
+
     case "media":
-      return stats.media.filter(d => d.value > 0);
+      return stats.media.filter(x => x.value > 0);
+
     case "genres":
       return stats.genres;
+
     case "overlap":
       return stats.overlaps;
+
     case "ratings":
       return stats.ratings;
+
     case "highest":
-      return stats.ranked.slice(0, 12).map(p => ({
-        name: p.title, value: p.rating
-      }));
+      return stats.ranked.slice(0,12)
+        .map(p => ({
+          name:p.title, value:p.rating
+        }));
+
     case "lowest":
-      return stats.ranked.slice(-12).reverse().map(p => ({
-        name: p.title, value: p.rating
-      }));
+      return stats.ranked.slice(-12).reverse()
+        .map(p => ({
+          name:p.title, value:p.rating
+        }));
   }
+
   return [];
 }
 
@@ -1359,27 +1751,31 @@ function renderStatistics() {
 
   if (!metric || !diagram) return;
 
-  $("chartTitle").textContent = METRICS[metric].name;
-  $("chartSubtitle").textContent = DIAGRAMS[diagram];
+  $("chartTitle").textContent =
+    METRICS[metric].name;
+
+  $("chartSubtitle").textContent =
+    DIAGRAMS[diagram];
 
   const descriptions = {
     watchTime:
-      "Duration is estimated from entered Production, Season and Episode minutes. The line chart groups those durations by release year, not by the date you watched them.",
+      "Entered durations grouped by release year. This is not a personal viewing timeline.",
     media:
-      "Watch time grouped by Production media type. Entries without duration information contribute no minutes.",
+      "Entered durations grouped by Production media type.",
     genres:
-      "Counts of Productions carrying each genre. A Production with several genres contributes to several categories.",
+      "Number of Productions carrying each genre. Productions can count toward multiple genres.",
     overlap:
-      "Genres appearing together in the same Production. Shows pairwise combinations, including secondary genres.",
+      "Genres that occur together within Productions.",
     ratings:
-      "Distribution of available Production ratings, including ratings inherited from Seasons and Episodes.",
+      "Production rating distribution, including automatic averages from Seasons and Episodes.",
     highest:
-      "The highest-rated Productions, excluding unrated entries.",
+      "Highest-rated Productions. Unrated entries are excluded.",
     lowest:
-      "The lowest-rated Productions, excluding unrated entries."
+      "Lowest-rated Productions. Unrated entries are excluded."
   };
 
-  $("statExplanation").textContent = descriptions[metric];
+  $("statExplanation").textContent =
+    descriptions[metric];
 
   const area = $("chartArea");
   clear(area);
@@ -1388,14 +1784,12 @@ function renderStatistics() {
 
   if (!data.length) {
     area.appendChild(emptyMessage(
-      metric === "watchTime"
-        ? "Add release years and durations to see this chart."
-        : "Not enough library data for this diagram."
+      "Not enough data for this diagram."
     ));
     return;
   }
 
-  const charts = {
+  const chartFunctions = {
     line: drawLine,
     donut: drawDonut,
     stacked: drawStacked,
@@ -1411,107 +1805,104 @@ function renderStatistics() {
     scatter: drawScatter
   };
 
-  const svg = charts[diagram](data, stats, metric);
+  const result =
+    chartFunctions[diagram](data, stats, metric);
 
-  if (!svg) {
+  if (!result) {
     area.appendChild(emptyMessage(
-      "More data is needed to draw this diagram."
+      "More data is required for this chart."
     ));
     return;
   }
 
-  area.innerHTML = svg;
+  area.innerHTML = result;
 }
 
-/* ============================================
-   SVG CHART HELPERS
-============================================ */
+/* ==========================================
+   CHART HELPERS
+========================================== */
 
-function svgWrap(content, w = 400, h = 300) {
+function svgWrap(content, w=400, h=300) {
   return `<svg viewBox="0 0 ${w} ${h}"
     xmlns="http://www.w3.org/2000/svg"
-    role="img"
-    aria-label="Statistics chart"
+    role="img" aria-label="Statistics chart"
     style="font-family:Georgia,serif">
     ${content}
   </svg>`;
 }
 
-function txt(x,y,text,size=11,anchor="middle",color="#ddd0b6") {
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}"
-    fill="${color}" font-size="${size}">
-    ${safeText(text)}
-  </text>`;
+function txt(x,y,text,size=11,
+             anchor="middle",color="#ddd0b6") {
+  return `<text x="${x}" y="${y}"
+    text-anchor="${anchor}" fill="${color}"
+    font-size="${size}">${escapeXML(text)}</text>`;
 }
 
 function rect(x,y,w,h,color,rx=0) {
-  return `<rect x="${x}" y="${y}" width="${Math.max(0,w)}"
-    height="${Math.max(0,h)}" rx="${rx}" fill="${color}"/>`;
+  return `<rect x="${x}" y="${y}"
+    width="${Math.max(0,w)}"
+    height="${Math.max(0,h)}" rx="${rx}"
+    fill="${color}"/>`;
 }
 
 function circle(x,y,r,color,opacity=1) {
-  return `<circle cx="${x}" cy="${y}" r="${r}"
-    fill="${color}" opacity="${opacity}"/>`;
+  return `<circle cx="${x}" cy="${y}"
+    r="${r}" fill="${color}"
+    opacity="${opacity}"/>`;
 }
 
-function line(x1,y1,x2,y2,color="#746344",width=1) {
+function line(x1,y1,x2,y2,
+              color="#746344",width=1) {
   return `<line x1="${x1}" y1="${y1}"
     x2="${x2}" y2="${y2}"
     stroke="${color}" stroke-width="${width}"/>`;
 }
 
 function polar(cx,cy,r,angle) {
-  const a = angle * Math.PI / 180;
-  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const a = angle*Math.PI/180;
+
+  return [
+    cx+r*Math.cos(a),
+    cy+r*Math.sin(a)
+  ];
 }
 
 function pathSlice(cx,cy,outer,inner,start,end,color) {
-  const p1 = polar(cx,cy,outer,start);
-  const p2 = polar(cx,cy,outer,end);
-  const p3 = polar(cx,cy,inner,end);
-  const p4 = polar(cx,cy,inner,start);
-  const large = end-start > 180 ? 1 : 0;
+  const p1=polar(cx,cy,outer,start);
+  const p2=polar(cx,cy,outer,end);
+  const p3=polar(cx,cy,inner,end);
+  const p4=polar(cx,cy,inner,start);
+  const large=end-start>180?1:0;
 
-  const d = `M${p1[0]},${p1[1]}
+  return `<path d="
+    M${p1[0]},${p1[1]}
     A${outer},${outer} 0 ${large} 1 ${p2[0]},${p2[1]}
     L${p3[0]},${p3[1]}
-    A${inner},${inner} 0 ${large} 0 ${p4[0]},${p4[1]} Z`;
-
-  return `<path d="${d}" fill="${color}"/>`;
-}
-
-function legend(data) {
-  return `<g>${data.map((d,i) =>
-    `${circle(15,15+i*16,4,COLORS[i%COLORS.length])}
-     ${txt(25,19+i*16,
-       d.name.length > 24
-         ? d.name.slice(0,22)+"…"
-         : d.name,
-       10,"start")}`
-  ).join("")}</g>`;
+    A${inner},${inner} 0 ${large} 0 ${p4[0]},${p4[1]}
+    Z" fill="${color}"/>`;
 }
 
 function valueData(data) {
   return data.filter(d =>
     Number.isFinite(Number(d.value)) &&
-    Number(d.value) >= 0
-  ).map(d => ({
-    name: d.name,
-    value: Number(d.value)
+    Number(d.value)>=0
+  ).map(d=>({
+    name:d.name,
+    value:Number(d.value)
   }));
 }
 
-/* LINE GRAPH */
+/* LINE */
 
 function drawLine(data) {
-  const d = valueData(data);
-  if (!d.length) return null;
+  const d=valueData(data);
+  if(!d.length)return null;
 
-  const max = Math.max(...d.map(x=>x.value),1);
-  const left=47, right=376, top=36, bottom=242;
+  const max=Math.max(...d.map(x=>x.value),1);
+  const left=47,right=376,top=36,bottom=242;
   const step=(right-left)/Math.max(d.length-1,1);
 
-  let s = "";
+  let s="";
 
   for(let i=0;i<=4;i++){
     const y=bottom-(bottom-top)*i/4;
@@ -1530,7 +1921,9 @@ function drawLine(data) {
 
   points.forEach((p,i)=>{
     s+=circle(p[0],p[1],4,COLORS[0]);
-    if(d.length<=12 || i%Math.ceil(d.length/12)===0){
+
+    if(d.length<=12 ||
+       i%Math.ceil(d.length/12)===0){
       s+=txt(p[0],bottom+22,d[i].name,9);
     }
   });
@@ -1541,7 +1934,9 @@ function drawLine(data) {
 /* DONUT */
 
 function drawDonut(data) {
-  const d=valueData(data).filter(x=>x.value>0).slice(0,8);
+  const d=valueData(data)
+    .filter(x=>x.value>0).slice(0,8);
+
   const total=d.reduce((a,b)=>a+b.value,0);
   if(!total)return null;
 
@@ -1550,22 +1945,32 @@ function drawDonut(data) {
 
   d.forEach((v,i)=>{
     const angle=v.value/total*360;
+
     if(angle>=359.999){
       s+=`<circle cx="145" cy="145" r="91"
-       fill="none" stroke="${COLORS[i%COLORS.length]}"
-       stroke-width="39"/>`;
+        fill="none"
+        stroke="${COLORS[i%COLORS.length]}"
+        stroke-width="39"/>`;
     }else{
       s+=pathSlice(
-        145,145,110,71,start,start+angle,
-        COLORS[i%COLORS.length]
+        145,145,110,71,start,
+        start+angle,COLORS[i%COLORS.length]
       );
     }
+
     start+=angle;
   });
 
   s+=txt(145,140,total.toLocaleString(),22);
   s+=txt(145,161,"TOTAL",10);
-  s+=`<g transform="translate(280,48)">${legend(d)}</g>`;
+
+  d.forEach((v,i)=>{
+    const y=51+i*25;
+
+    s+=circle(288,y,5,COLORS[i%COLORS.length]);
+    s+=txt(300,y+4,
+      v.name.slice(0,21),10,"start");
+  });
 
   return svgWrap(s,470,300);
 }
@@ -1575,16 +1980,21 @@ function drawDonut(data) {
 function drawStacked(data,stats,metric) {
   if(metric==="ratings"){
     const bins=Array(10).fill(0);
+
     data.forEach(v=>{
-      const i=Math.min(9,Math.max(0,Math.ceil(v)-1));
+      const i=Math.min(9,
+        Math.max(0,Math.ceil(v)-1));
       bins[i]++;
     });
+
     data=bins.map((value,i)=>({
       name:String(i+1),value
     }));
   }
 
-  const d=valueData(data).filter(x=>x.value>0).slice(0,10);
+  const d=valueData(data)
+    .filter(x=>x.value>0).slice(0,10);
+
   const total=d.reduce((a,b)=>a+b.value,0);
   if(!total)return null;
 
@@ -1593,63 +2003,100 @@ function drawStacked(data,stats,metric) {
 
   d.forEach((v,i)=>{
     const width=v.value/total*360;
-    s+=rect(current,105,width,55,COLORS[i%COLORS.length]);
+
+    s+=rect(
+      current,105,width,55,
+      COLORS[i%COLORS.length]
+    );
+
     current+=width;
   });
 
-  s+=txt(200,90,"TOTAL: "+total.toLocaleString(),14);
+  s+=txt(200,90,
+    "TOTAL: "+total.toLocaleString(),14);
 
   d.forEach((v,i)=>{
-    const col=i%2, row=Math.floor(i/2);
-    s+=circle(20+col*185,204+row*18,4,
-      COLORS[i%COLORS.length]);
-    s+=txt(30+col*185,208+row*18,
-      v.name.slice(0,16)+" ("+v.value+")",10,"start");
+    const col=i%2;
+    const row=Math.floor(i/2);
+
+    s+=circle(
+      20+col*185,204+row*18,
+      4,COLORS[i%COLORS.length]
+    );
+
+    s+=txt(
+      30+col*185,208+row*18,
+      v.name.slice(0,14)+" ("+v.value+")",
+      10,"start"
+    );
   });
 
-  return svgWrap(s,400,300);
+  return svgWrap(s);
 }
 
 /* TREEMAP */
 
 function drawTreemap(data) {
-  const d=valueData(data).filter(x=>x.value>0)
-    .sort((a,b)=>b.value-a.value).slice(0,14);
+  const d=valueData(data)
+    .filter(x=>x.value>0)
+    .sort((a,b)=>b.value-a.value)
+    .slice(0,14);
 
   const total=d.reduce((a,b)=>a+b.value,0);
   if(!total)return null;
 
-  // Alternating slice-and-dice treemap.
-  let remaining={x:10,y:12,w:380,h:270};
+  let remaining={
+    x:10,y:12,w:380,h:270
+  };
+
   let remainingTotal=total;
   let s="";
 
   d.forEach((v,i)=>{
     const final=i===d.length-1;
     const ratio=final?1:v.value/remainingTotal;
+
     let box;
 
     if(i%2===0){
       const w=remaining.w*ratio;
-      box={x:remaining.x,y:remaining.y,w,h:remaining.h};
+
+      box={
+        x:remaining.x,y:remaining.y,
+        w,h:remaining.h
+      };
+
       remaining.x+=w;
       remaining.w-=w;
     }else{
       const h=remaining.h*ratio;
-      box={x:remaining.x,y:remaining.y,w:remaining.w,h};
+
+      box={
+        x:remaining.x,y:remaining.y,
+        w:remaining.w,h
+      };
+
       remaining.y+=h;
       remaining.h-=h;
     }
 
     remainingTotal-=v.value;
 
-    s+=rect(box.x+1,box.y+1,box.w-2,box.h-2,
-      COLORS[i%COLORS.length],3);
+    s+=rect(
+      box.x+1,box.y+1,
+      box.w-2,box.h-2,
+      COLORS[i%COLORS.length],3
+    );
 
     if(box.w>48 && box.h>28){
-      s+=txt(box.x+box.w/2,box.y+box.h/2,
-        v.name.slice(0,Math.max(4,Math.floor(box.w/9))),
-        10,"middle","#17120b");
+      s+=txt(
+        box.x+box.w/2,
+        box.y+box.h/2,
+        v.name.slice(0,Math.max(
+          4,Math.floor(box.w/9)
+        )),
+        10,"middle","#17120b"
+      );
     }
   });
 
@@ -1665,20 +2112,28 @@ function drawRadar(data) {
   const cx=200,cy=150,r=100;
   const max=Math.max(...d.map(v=>v.value),1);
   const n=d.length;
+
   let s="";
 
   for(let ring=1;ring<=4;ring++){
     const points=d.map((v,i)=>{
       const a=-90+i*360/n;
-      return polar(cx,cy,r*ring/4,a).join(",");
+
+      return polar(
+        cx,cy,r*ring/4,a
+      ).join(",");
     }).join(" ");
 
-    s+=`<polygon points="${points}" fill="none"
-      stroke="#675941" stroke-width=".8"/>`;
+    s+=`<polygon points="${points}"
+      fill="none" stroke="#675941"
+      stroke-width=".8"/>`;
   }
 
   const plot=d.map((v,i)=>
-    polar(cx,cy,r*v.value/max,-90+i*360/n).join(",")
+    polar(
+      cx,cy,r*v.value/max,
+      -90+i*360/n
+    ).join(",")
   ).join(" ");
 
   s+=`<polygon points="${plot}"
@@ -1686,14 +2141,19 @@ function drawRadar(data) {
     stroke="#f0d99b" stroke-width="2"/>`;
 
   d.forEach((v,i)=>{
-    const [x,y]=polar(cx,cy,r+20,-90+i*360/n);
-    s+=txt(x,y,v.name.slice(0,11),10);
+    const [x,y]=polar(
+      cx,cy,r+20,-90+i*360/n
+    );
+
+    s+=txt(
+      x,y,v.name.slice(0,11),10
+    );
   });
 
   return svgWrap(s);
 }
 
-/* VENN: TWO OR THREE MOST COMMON GENRES */
+/* VENN */
 
 function drawVenn(data,stats) {
   const d=stats.genres.slice(0,3);
@@ -1707,9 +2167,13 @@ function drawVenn(data,stats) {
 
   d.forEach((v,i)=>{
     const [x,y]=positions[i];
+
     s+=`<circle cx="${x}" cy="${y}" r="75"
-      fill="${COLORS[i]}" fill-opacity=".24"
-      stroke="${COLORS[i]}" stroke-width="2"/>`;
+      fill="${COLORS[i]}"
+      fill-opacity=".24"
+      stroke="${COLORS[i]}"
+      stroke-width="2"/>`;
+
     s+=txt(x,y-10,v.name.slice(0,15),13);
     s+=txt(x,y+7,String(v.value),11);
   });
@@ -1717,10 +2181,12 @@ function drawVenn(data,stats) {
   return svgWrap(s);
 }
 
-/* UPSET PLOT */
+/* UPSET */
 
 function drawUpSet(data,stats) {
-  const genres=stats.genres.slice(0,4).map(x=>x.name);
+  const genres=stats.genres
+    .slice(0,4).map(x=>x.name);
+
   if(genres.length<2)return null;
 
   const combos=new Map();
@@ -1730,7 +2196,10 @@ function drawUpSet(data,stats) {
     if(!selected.length)continue;
 
     const key=selected.join("|");
-    combos.set(key,(combos.get(key)||0)+1);
+
+    combos.set(
+      key,(combos.get(key)||0)+1
+    );
   }
 
   const d=[...combos].map(([key,value])=>({
@@ -1746,44 +2215,65 @@ function drawUpSet(data,stats) {
     const x=100+i*31;
     const height=v.value/max*104;
 
-    s+=rect(x,130-height,20,height,
-      COLORS[i%COLORS.length],3);
+    s+=rect(
+      x,130-height,20,height,
+      COLORS[i%COLORS.length],3
+    );
 
-    s+=txt(x+10,122-height,String(v.value),9);
+    s+=txt(
+      x+10,122-height,
+      String(v.value),9
+    );
 
     const selected=v.key.split("|");
-    let ys=[];
+    const ys=[];
 
     genres.forEach((g,j)=>{
       const y=175+j*25;
       const active=selected.includes(g);
-      s+=circle(x+10,y,4,
-        active?"#f0d99b":"#49443e");
+
+      s+=circle(
+        x+10,y,4,
+        active?"#f0d99b":"#49443e"
+      );
+
       if(active)ys.push(y);
     });
 
     if(ys.length>1){
-      s+=line(x+10,Math.min(...ys),
-        x+10,Math.max(...ys),"#f0d99b",2);
+      s+=line(
+        x+10,Math.min(...ys),
+        x+10,Math.max(...ys),
+        "#f0d99b",2
+      );
     }
   });
 
   genres.forEach((g,j)=>{
-    s+=txt(89,179+j*25,g.slice(0,12),10,"end");
+    s+=txt(
+      89,179+j*25,
+      g.slice(0,12),10,"end"
+    );
   });
 
   return svgWrap(s);
 }
 
-/* CHORD DIAGRAM */
+/* CHORD */
 
 function drawChord(data,stats) {
-  const names=stats.genres.slice(0,7).map(g=>g.name);
+  const names=stats.genres
+    .slice(0,7).map(g=>g.name);
+
   if(names.length<2)return null;
 
   const cx=200,cy=150,r=105;
+
   const positions=names.map((name,i)=>
-    polar(cx,cy,r,-90+i*360/names.length)
+    polar(
+      cx,cy,r,
+      -90+i*360/names.length
+    )
   );
 
   let s=`<circle cx="${cx}" cy="${cy}" r="${r}"
@@ -1792,35 +2282,57 @@ function drawChord(data,stats) {
   stats.overlaps.forEach(overlap=>{
     const a=names.indexOf(overlap.pair[0]);
     const b=names.indexOf(overlap.pair[1]);
+
     if(a<0||b<0)return;
 
-    const p1=positions[a],p2=positions[b];
-    s+=`<path d="M${p1[0]},${p1[1]}
-      Q${cx},${cy} ${p2[0]},${p2[1]}"
-      fill="none" stroke="${COLORS[a%COLORS.length]}"
+    const p1=positions[a];
+    const p2=positions[b];
+
+    s+=`<path d="
+      M${p1[0]},${p1[1]}
+      Q${cx},${cy}
+      ${p2[0]},${p2[1]}"
+      fill="none"
+      stroke="${COLORS[a%COLORS.length]}"
       stroke-opacity=".6"
       stroke-width="${Math.min(9,1+overlap.value)}"/>`;
   });
 
   positions.forEach((p,i)=>{
-    s+=circle(p[0],p[1],6,COLORS[i%COLORS.length]);
-    const label=polar(cx,cy,r+24,-90+i*360/names.length);
-    s+=txt(label[0],label[1],
-      names[i].slice(0,11),10);
+    s+=circle(
+      p[0],p[1],6,
+      COLORS[i%COLORS.length]
+    );
+
+    const label=polar(
+      cx,cy,r+24,
+      -90+i*360/names.length
+    );
+
+    s+=txt(
+      label[0],label[1],
+      names[i].slice(0,11),10
+    );
   });
 
   return svgWrap(s);
 }
 
-/* NETWORK GRAPH */
+/* NETWORK */
 
 function drawNetwork(data,stats) {
-  const names=stats.genres.slice(0,9).map(g=>g.name);
+  const names=stats.genres
+    .slice(0,9).map(g=>g.name);
+
   if(names.length<2)return null;
 
   const cx=200,cy=145;
+
   const positions=names.map((n,i)=>
-    polar(cx,cy,105,-90+i*360/names.length)
+    polar(
+      cx,cy,105,
+      -90+i*360/names.length
+    )
   );
 
   let s="";
@@ -1828,18 +2340,32 @@ function drawNetwork(data,stats) {
   stats.overlaps.forEach(o=>{
     const a=names.indexOf(o.pair[0]);
     const b=names.indexOf(o.pair[1]);
+
     if(a<0||b<0)return;
 
-    s+=line(...positions[a],...positions[b],
-      "#97794a",Math.min(7,.7+o.value));
+    s+=line(
+      ...positions[a],
+      ...positions[b],
+      "#97794a",
+      Math.min(7,.7+o.value)
+    );
   });
 
   positions.forEach((p,i)=>{
-    s+=circle(p[0],p[1],9,COLORS[i%COLORS.length]);
-    const label=polar(cx,cy,130,
-      -90+i*360/names.length);
-    s+=txt(label[0],label[1],
-      names[i].slice(0,10),10);
+    s+=circle(
+      p[0],p[1],9,
+      COLORS[i%COLORS.length]
+    );
+
+    const label=polar(
+      cx,cy,130,
+      -90+i*360/names.length
+    );
+
+    s+=txt(
+      label[0],label[1],
+      names[i].slice(0,10),10
+    );
   });
 
   return svgWrap(s);
@@ -1850,26 +2376,37 @@ function drawNetwork(data,stats) {
 function drawHistogram(data) {
   if(!data.length)return null;
 
-  const bins=Array(10).fill(0);
+  // Twenty bins preserve half-star granularity.
+  const bins=Array(21).fill(0);
 
   data.forEach(v=>{
-    const index=Math.min(9,
-      Math.max(0,Math.ceil(Number(v))-1));
-    bins[index]++;
+    const i=Math.min(
+      20,Math.max(0,Math.round(v*2))
+    );
+
+    bins[i]++;
   });
 
   const max=Math.max(...bins,1);
   let s="";
 
-  for(let i=0;i<10;i++){
+  for(let i=0;i<21;i++){
     const h=bins[i]/max*195;
-    const x=30+i*35;
-    s+=rect(x,240-h,29,h,COLORS[i%COLORS.length],2);
-    s+=txt(x+14,256,String(i+1),10);
-    if(bins[i])s+=txt(x+14,230-h,String(bins[i]),10);
+    const x=24+i*17;
+
+    s+=rect(
+      x,240-h,14,h,
+      COLORS[i%COLORS.length],2
+    );
+
+    if(i%2===0){
+      s+=txt(
+        x+7,256,String(i/2),9
+      );
+    }
   }
 
-  s+=line(24,240,385,240);
+  s+=line(21,240,385,240);
 
   return svgWrap(s);
 }
@@ -1877,95 +2414,164 @@ function drawHistogram(data) {
 /* BOX AND WHISKER */
 
 function drawBox(data) {
-  const sorted=[...data].map(Number)
-    .filter(Number.isFinite).sort((a,b)=>a-b);
+  const sorted=[...data]
+    .map(Number)
+    .filter(Number.isFinite)
+    .sort((a,b)=>a-b);
 
   if(!sorted.length)return null;
 
   function quantile(q){
     const p=(sorted.length-1)*q;
-    const lo=Math.floor(p),hi=Math.ceil(p);
+    const lo=Math.floor(p);
+    const hi=Math.ceil(p);
+
     return sorted[lo]+
       (sorted[hi]-sorted[lo])*(p-lo);
   }
 
-  const low=sorted[0],high=sorted.at(-1);
-  const q1=quantile(.25),median=quantile(.5);
+  const low=sorted[0];
+  const high=sorted.at(-1);
+  const q1=quantile(.25);
+  const median=quantile(.5);
   const q3=quantile(.75);
 
   const x=v=>35+v/10*330;
-  let s=line(35,180,365,180,"#8e794e",2);
+
+  let s=line(
+    35,180,365,180,"#8e794e",2
+  );
 
   for(let i=0;i<=10;i+=2){
     s+=txt(x(i),215,String(i),11);
     s+=line(x(i),187,x(i),193);
   }
 
-  s+=line(x(low),150,x(high),150,"#e6cb8b",2);
-  s+=line(x(low),135,x(low),165,"#e6cb8b",2);
-  s+=line(x(high),135,x(high),165,"#e6cb8b",2);
-  s+=rect(x(q1),112,x(q3)-x(q1),76,"#ba9253",3);
-  s+=line(x(median),112,x(median),188,"#fff0b4",3);
+  s+=line(
+    x(low),150,x(high),150,
+    "#e6cb8b",2
+  );
 
-  s+=txt(200,61,
-    `Median ${median.toFixed(1)} / 10`,16);
+  s+=line(
+    x(low),135,x(low),165,
+    "#e6cb8b",2
+  );
+
+  s+=line(
+    x(high),135,x(high),165,
+    "#e6cb8b",2
+  );
+
+  s+=rect(
+    x(q1),112,x(q3)-x(q1),
+    76,"#ba9253",3
+  );
+
+  s+=line(
+    x(median),112,
+    x(median),188,
+    "#fff0b4",3
+  );
+
+  s+=txt(
+    200,61,
+    `Median ${median.toFixed(1)} / 10`,16
+  );
 
   return svgWrap(s);
 }
 
-/* RANKED HORIZONTAL BARS */
+/* RANKED BAR */
 
 function drawRanked(data,stats,metric) {
   let d=valueData(data).slice(0,9);
-  if(!d.length)return null;
 
   if(metric==="watchTime"){
     d=stats.productions
       .map(p=>({
-        name:p.title,value:productionMinutes(p)
+        name:p.title,
+        value:productionMinutes(p)
       }))
       .filter(p=>p.value>0)
       .sort((a,b)=>b.value-a.value)
       .slice(0,9);
   }
 
-  const max=Math.max(...d.map(x=>x.value),1);
-  const rowHeight=30;
-  const height=Math.max(160,d.length*rowHeight+26);
+  if(!d.length)return null;
+
+  const max=Math.max(
+    ...d.map(x=>x.value),1
+  );
+
+  const height=Math.max(
+    160,d.length*30+26
+  );
 
   let s="";
 
   d.forEach((v,i)=>{
-    const y=11+i*rowHeight;
+    const y=11+i*30;
     const width=v.value/max*214;
 
-    s+=txt(7,y+15,v.name.slice(0,17),10,"start");
-    s+=rect(130,y,214,17,"#28231e",3);
-    s+=rect(130,y,width,17,
-      COLORS[i%COLORS.length],3);
-    s+=txt(351,y+13,
-      Number(v.value.toFixed(1)).toString(),10,"start");
+    s+=txt(
+      7,y+15,
+      v.name.slice(0,17),
+      10,"start"
+    );
+
+    s+=rect(
+      130,y,214,17,
+      "#28231e",3
+    );
+
+    s+=rect(
+      130,y,width,17,
+      COLORS[i%COLORS.length],3
+    );
+
+    s+=txt(
+      351,y+13,
+      Number(v.value.toFixed(1)).toString(),
+      10,"start"
+    );
   });
 
   return svgWrap(s,400,height);
 }
 
-/* SCATTER PLOT: DURATION VS RATING */
+/* SCATTER */
 
 function drawScatter(data,stats) {
   const points=stats.points;
   if(!points.length)return null;
 
-  const maxX=Math.max(...points.map(p=>p.x),1);
-  const left=42,right=375,top=20,bottom=245;
+  const maxX=Math.max(
+    ...points.map(p=>p.x),1
+  );
 
-  let s=line(left,bottom,right,bottom);
-  s+=line(left,top,left,bottom);
+  const left=42,right=375;
+  const top=20,bottom=245;
+
+  let s=line(
+    left,bottom,right,bottom
+  );
+
+  s+=line(
+    left,top,left,bottom
+  );
 
   for(let i=0;i<=5;i++){
     const y=bottom-i/5*(bottom-top);
-    s+=line(left,y,right,y,"#51493b",.7);
-    s+=txt(34,y+4,String(i*2),10,"end");
+
+    s+=line(
+      left,y,right,y,
+      "#51493b",.7
+    );
+
+    s+=txt(
+      34,y+4,String(i*2),
+      10,"end"
+    );
   }
 
   points.forEach((p,i)=>{
@@ -1974,33 +2580,38 @@ function drawScatter(data,stats) {
 
     s+=`<circle cx="${x}" cy="${y}" r="5"
       fill="${COLORS[i%COLORS.length]}">
-      <title>${safeText(p.title)}:
+      <title>${escapeXML(p.title)}:
       ${p.y.toFixed(1)}/10,
       ${p.x} minutes</title>
     </circle>`;
   });
 
-  s+=txt(210,284,"Duration (minutes)",11);
+  s+=txt(
+    210,284,
+    "Duration (minutes)",11
+  );
 
   return svgWrap(s);
 }
 
-/* ============================================
+/* ==========================================
    KEYBOARD
-============================================ */
+========================================== */
 
 document.addEventListener("keydown", e => {
-  if(e.key!=="Escape")return;
+  if (e.key !== "Escape") return;
 
-  if(!$("editorOverlay").classList.contains("hidden")){
+  if (!$("editorOverlay").classList.contains("hidden")) {
     closeEditor();
     return;
   }
 
-  if(!$("detailOverlay").classList.contains("hidden")){
+  if (!$("detailOverlay").classList.contains("hidden")) {
     closeDetail();
     return;
   }
 
-  if(state.currentPage!=="home")goHome();
+  if (state.currentPage !== "home") {
+    goHome();
+  }
 });
