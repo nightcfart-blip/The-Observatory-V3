@@ -96,8 +96,10 @@ function createEntry(type, values = {}) {
     medium: "",
     parentId: "",
     episodeNumber: null,
-    release: "",
-    duration: null,
+release: "",       // Kept for older saved entries
+airingDate: "",    // DD.MM.YY
+watchedDate: "",   // DD.MM.YY
+duration: null,
     rating: null,
     mainGenres: [],
     secondaryGenres: [],
@@ -424,28 +426,6 @@ function genreList(item) {
 }
 
 /* ==========================================
-   RELEASE DATES
-========================================== */
-
-function releaseTimestamp(value) {
-  if (!value) return null;
-
-  const match = String(value).match(
-    /\b(?:18|19|20|21)\d{2}\b/
-  );
-
-  if (!match) return null;
-
-  const exact = Date.parse(value);
-
-  if (Number.isFinite(exact)) return exact;
-
-  return new Date(
-    Number(match[0]), 0, 1
-  ).getTime();
-}
-
-/* ==========================================
    BANNER STORAGE
 ========================================== */
 
@@ -559,3 +539,139 @@ function invalidateImageURL(type, id) {
 
   imageURLs.delete(key);
 }
+
+/* ==========================================
+   AIRING / WATCHING DATE SYSTEM
+========================================== */
+
+// Dates are saved as DD.MM.YY.
+// Two-digit years represent 2000–2099.
+
+function parseTrackerDate(value) {
+  if (typeof value !== "string") return null;
+
+  const match = value.trim().match(
+    /^(\d{2})\.(\d{2})\.(\d{2})$/
+  );
+
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = 2000 + Number(match[3]);
+
+  const date = new Date(Date.UTC(
+    year, month - 1, day
+  ));
+
+  // Reject impossible dates like 31.02.26.
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return {
+    day,
+    month,
+    year,
+    timestamp: date.getTime(),
+    key: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    display: value.trim()
+  };
+}
+
+function validTrackerDate(value) {
+  return !value || parseTrackerDate(value) !== null;
+}
+
+function productionHasSeasons(production) {
+  if (!production) return false;
+
+  return getChildren(
+    "production",
+    production.id
+  ).length > 0;
+}
+
+function allowsAiringDate(type, id = null) {
+  if (type === "season") return true;
+
+  if (type === "production") {
+    return !id ||
+      !productionHasSeasons(
+        findEntry("production", id)
+      );
+  }
+
+  return false;
+}
+
+function allowsWatchingDate(type, id = null) {
+  if (type === "episode") return true;
+
+  if (type === "production") {
+    return !id ||
+      !productionHasSeasons(
+        findEntry("production", id)
+      );
+  }
+
+  return false;
+}
+
+function effectiveAiringDate(item) {
+  if (!item) return "";
+
+  if (!allowsAiringDate(item.type, item.id)) {
+    return "";
+  }
+
+  // Preserve older release information for display.
+  return item.airingDate || item.release || "";
+}
+
+function effectiveWatchingDate(item) {
+  if (!item) return "";
+
+  if (!allowsWatchingDate(item.type, item.id)) {
+    return "";
+  }
+
+  return item.watchedDate || "";
+}
+
+// Used by the Library's chronological airing sort.
+// Accepts the new date format and older year-only
+// release fields.
+
+function releaseTimestamp(value) {
+  if (!value) return null;
+
+  const parsed = parseTrackerDate(value);
+
+  if (parsed) return parsed.timestamp;
+
+  const oldYear = String(value).match(
+    /\b(?:18|19|20|21)\d{2}\b/
+  );
+
+  if (!oldYear) return null;
+
+  return Date.UTC(Number(oldYear[0]), 0, 1);
+}
+
+// Returns the actual date of watching as a
+// chronological key. Never uses the airing date.
+
+function watchedDayKey(item) {
+  const date = parseTrackerDate(
+    effectiveWatchingDate(item)
+  );
+
+  return date ? date.key : null;
+}
+
