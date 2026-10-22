@@ -11,18 +11,17 @@
 </head>
 <body>
 
-  <!-- COMPASS HOME -->
+  <!-- HOME -->
 
   <main id="homePage" class="home-page">
     <div id="compassWrap" class="compass-wrap">
       <div id="compass" class="compass">
 
         <svg viewBox="0 0 500 500"
-             class="compass-art"
-             aria-hidden="true">
+             class="compass-art" aria-hidden="true">
           <defs>
             <linearGradient id="compassGold"
-                            x1="0" y1="0" x2="1" y2="1">
+                x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#fff0b1"/>
               <stop offset="48%" stop-color="#dab66c"/>
               <stop offset="100%" stop-color="#90632c"/>
@@ -147,8 +146,8 @@
 
     <div class="page-content">
       <div class="library-controls">
-        <input id="librarySearch"
-               type="search" placeholder="Search...">
+        <input id="librarySearch" type="search"
+               placeholder="Search...">
 
         <select id="librarySort">
           <option value="newest">Newest added</option>
@@ -166,8 +165,8 @@
           <label><input type="checkbox"
                         data-filter="group">Groups</label>
           <label><input type="checkbox"
-                        data-filter="production"
-                        checked>Productions</label>
+                        data-filter="production" checked>
+                        Productions</label>
           <label><input type="checkbox"
                         data-filter="season">Seasons</label>
           <label><input type="checkbox"
@@ -191,7 +190,6 @@
     </header>
 
     <div class="page-content">
-
       <div class="statistics-overview">
         <div>
           <span>Productions</span>
@@ -220,42 +218,43 @@
           <h2 id="chartTitle"></h2>
           <span id="chartSubtitle"></span>
         </div>
-
         <div id="chartArea" class="chart-area"></div>
       </div>
 
-      <div id="statExplanation" class="stat-explanation"></div>
-
+      <div id="statExplanation"
+           class="stat-explanation"></div>
     </div>
   </section>
 
-  <!-- INDIVIDUAL ENTRY VIEW -->
+  <!-- ENTRY DETAIL VIEW -->
 
   <div id="detailOverlay" class="detail-overlay hidden">
-    <article id="detailSheet" class="detail-sheet">
+    <article class="detail-sheet">
 
       <header class="detail-toolbar">
         <button id="closeDetail" aria-label="Close">‹</button>
         <span id="detailKind"></span>
-        <button id="editDetail" aria-label="Edit">Edit</button>
+        <button id="editDetail">Edit</button>
       </header>
 
       <div class="detail-scroll">
-
         <div id="detailBanner" class="detail-banner"></div>
 
         <div class="detail-content">
-
           <div class="detail-information">
             <div class="detail-title-area">
               <h2 id="detailTitle"></h2>
-              <div id="detailMedium" class="detail-medium"></div>
-              <div id="detailStars" class="detail-stars"></div>
-              <div id="detailRating" class="detail-rating"></div>
+              <div id="detailMedium"
+                   class="detail-medium"></div>
+              <div id="detailStars"
+                   class="detail-stars"></div>
+              <div id="detailRating"
+                   class="detail-rating"></div>
             </div>
 
             <div class="detail-genres">
-              <div id="detailExtra" class="detail-extra"></div>
+              <div id="detailExtra"
+                   class="detail-extra"></div>
               <div id="detailMainGenres"
                    class="main-genres"></div>
               <div id="detailSecondaryGenres"
@@ -263,17 +262,16 @@
             </div>
           </div>
 
-          <div id="detailNotes" class="detail-notes"></div>
-
-          <div id="detailChildren" class="detail-children"></div>
-
+          <div id="detailNotes"
+               class="detail-notes"></div>
+          <div id="detailChildren"
+               class="detail-children"></div>
         </div>
       </div>
-
     </article>
   </div>
 
-  <!-- CREATE / EDIT -->
+  <!-- CREATION / EDITING MODAL -->
 
   <div id="editorOverlay" class="modal-overlay hidden">
     <div class="editor-modal">
@@ -297,8 +295,8 @@
             <div id="bannerPreview" class="banner-preview">
               <span>No banner</span>
             </div>
-            <input id="bannerInput"
-                   type="file" accept="image/*">
+            <input id="bannerInput" type="file"
+                   accept="image/*">
             <button type="button" id="removeBanner"
                     class="small-action">
               Remove banner
@@ -324,43 +322,60 @@
           <div id="episodeNumberField"
                class="editor-section">
             <label>Episode number</label>
-            <input id="editEpisodeNumber"
-                   type="number" min="1" step="1">
+            <input id="editEpisodeNumber" type="number"
+                   min="1" step="1">
           </div>
 
-          <div id="releaseField" class="editor-section">
+          <div class="editor-section">
             <label>Release / airing</label>
             <input id="editRelease"
                    placeholder="Year or date">
           </div>
 
-          <div id="durationField" class="editor-section">
+          <div class="editor-section">
             <label>Duration in minutes</label>
-            <input id="editDuration"
-                   type="number" min="0" step="1">
+            <input id="editDuration" type="number"
+                   min="0" step="1">
           </div>
+
+          <!-- Shown only for eligible entries -->
 
           <div id="ratingField" class="editor-section">
             <label>Rating</label>
-            <div id="starRating" class="star-editor"></div>
+            <div id="starRating"
+                 class="star-editor"></div>
+
             <div class="rating-input-row">
-              <input id="editRating"
-                     type="number" min="0" max="10"
-                     step="0.1" placeholder="Unrated">
+              <select id="editRating"></select>
               <span>/ 10</span>
             </div>
           </div>
 
-          <div class="editor-section">
-            <label>Main genres</label>
-            <input id="editMainGenres"
-                   placeholder="Fantasy, Adventure">
+          <!-- Automatic genres for Group / Season -->
+
+          <div id="autoGenresField"
+               class="editor-section hidden">
+            <label>Inherited genres</label>
+            <div class="inherited-genres">
+              <div id="autoMainGenres"></div>
+              <small id="autoSecondaryGenres"></small>
+            </div>
           </div>
 
-          <div class="editor-section">
-            <label>Secondary genres</label>
-            <input id="editSecondaryGenres"
-                   placeholder="Mystery, Romance">
+          <!-- Manual only for Productions -->
+
+          <div id="manualGenresField">
+            <div class="editor-section">
+              <label>Main genres</label>
+              <input id="editMainGenres"
+                     placeholder="Fantasy, Adventure">
+            </div>
+
+            <div class="editor-section">
+              <label>Secondary genres</label>
+              <input id="editSecondaryGenres"
+                     placeholder="Mystery, Romance">
+            </div>
           </div>
 
           <div class="editor-section">
@@ -380,7 +395,6 @@
 
         </form>
       </div>
-
     </div>
   </div>
 
