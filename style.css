@@ -1098,3 +1098,21 @@ textarea {
     transition-duration: .01ms !important;
   }
 }
+
+/* Precise fractional star fills */
+
+.display-star .star-fill,
+.edit-star .star-fill {
+  width: 100%;
+  clip-path: inset(
+    0 calc(100% - var(--fill, 0%)) 0 0
+  );
+}
+
+.display-star .star-base,
+.display-star .star-fill,
+.edit-star .star-base,
+.edit-star .star-fill {
+  text-align: center;
+}
+
