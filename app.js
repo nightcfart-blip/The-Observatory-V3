@@ -1016,7 +1016,18 @@ async function openDetail(type, id) {
 
   const extra = [];
 
-  if (item.release) extra.push(item.release);
+  
+const airingDate = effectiveAiringDate(item);
+const watchingDate = effectiveWatchingDate(item);
+
+if (airingDate) {
+  extra.push("Aired: " + airingDate);
+}
+
+if (watchingDate) {
+  extra.push("Watched: " + watchingDate);
+}
+
 
   if (type === "episode") {
     if (item.episodeNumber != null) {
