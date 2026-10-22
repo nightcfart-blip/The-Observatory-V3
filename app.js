@@ -581,7 +581,30 @@ async function openEditor(type, id = null, parentId = "") {
 
   $("editTitle").value = entry?.title || "";
   $("editMedium").value = entry?.medium || "";
-  $("editRelease").value = entry?.release || "";
+
+$("editAiring").value =
+  parseTrackerDate(entry?.airingDate || "")
+    ? entry.airingDate
+    : (
+        parseTrackerDate(entry?.release || "")
+          ? entry.release
+          : ""
+      );
+
+$("editWatching").value =
+  entry?.watchedDate || "";
+
+const showAiring = allowsAiringDate(type, id);
+const showWatching = allowsWatchingDate(type, id);
+
+$("airingField").classList.toggle(
+  "hidden", !showAiring
+);
+
+$("watchingField").classList.toggle(
+  "hidden", !showWatching
+);
+
   $("editDuration").value = entry?.duration ?? "";
   $("editEpisodeNumber").value =
     entry?.episodeNumber ?? "";
@@ -786,6 +809,22 @@ async function saveEditor() {
              type === "season") {
     rating = null;
   }
+
+const airingInput = $("editAiring").value.trim();
+const watchingInput = $("editWatching").value.trim();
+
+const allowAiring = allowsAiringDate(type, id);
+const allowWatching = allowsWatchingDate(type, id);
+
+if (allowAiring && !validTrackerDate(airingInput)) {
+  alert("Enter Time of Airing as DD.MM.YY.");
+  return;
+}
+
+if (allowWatching && !validTrackerDate(watchingInput)) {
+  alert("Enter Time of Watching as DD.MM.YY.");
+  return;
+}
 
   const values = {
     title,
