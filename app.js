@@ -1348,7 +1348,15 @@ const releaseB = releaseTimestamp(
       [
         TYPE_NAMES[item.type],
         effectiveMedium(item),
-        item.release,
+
+        effectiveAiringDate(item)
+          ? "Aired: " + effectiveAiringDate(item)
+          : "",
+
+        effectiveWatchingDate(item)
+          ? "Watched: " + effectiveWatchingDate(item)
+          : "",
+
         parentName(item)
       ].filter(Boolean).join(" · ")
     ));
