@@ -1266,12 +1266,14 @@ parentName(item),
 
     const scoreA = effectiveRating(a);
     const scoreB = effectiveRating(b);
+   
+const releaseA = releaseTimestamp(
+  effectiveAiringDate(a)
+);
 
-    const releaseA =
-      releaseTimestamp(a.release);
-
-    const releaseB =
-      releaseTimestamp(b.release);
+const releaseB = releaseTimestamp(
+  effectiveAiringDate(b)
+);
 
     switch (sort) {
       case "az":
