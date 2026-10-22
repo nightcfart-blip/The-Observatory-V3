@@ -1248,10 +1248,12 @@ function renderLibrary() {
   const items = allEntries().filter(item => {
     if (!types.includes(item.type)) return false;
 
-    const text = [
-      item.title,
-      effectiveMedium(item),
-      parentName(item),
+    const text = [ 
+item.title,
+effectiveMedium(item),
+effectiveAiringDate(item),
+effectiveWatchingDate(item),
+parentName(item),
       ...genreList(item)
     ].join(" ").toLowerCase();
 
