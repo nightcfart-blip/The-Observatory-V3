@@ -326,11 +326,35 @@
                    min="1" step="1">
           </div>
 
-          <div class="editor-section">
-            <label>Release / airing</label>
-            <input id="editRelease"
-                   placeholder="Year or date">
-          </div>
+        
+<!-- AIRING DATE:
+     Standalone Productions and Seasons -->
+
+<div id="airingField" class="editor-section hidden">
+  <label for="editAiring">Time of Airing</label>
+  <input
+    id="editAiring"
+    type="text"
+    placeholder="DD.MM.YY"
+    inputmode="numeric"
+    maxlength="8"
+    autocomplete="off">
+</div>
+
+<!-- WATCHING DATE:
+     Standalone Productions and Episodes -->
+
+<div id="watchingField" class="editor-section hidden">
+  <label for="editWatching">Time of Watching</label>
+  <input
+    id="editWatching"
+    type="text"
+    placeholder="DD.MM.YY"
+    inputmode="numeric"
+    maxlength="8"
+    autocomplete="off">
+</div>
+
 
           <div class="editor-section">
             <label>Duration in minutes</label>
