@@ -1485,55 +1485,93 @@ function renderWatchlist() {
   });
 }
 
+
 /* ==========================================
-   WATCH TIME
+   ACTUAL WATCH TIME
 ========================================== */
 
-// Where more detailed durations are present,
-// they take priority over a parent duration.
+// Standalone Production:
+//   Uses its own watching date and duration.
+//
+// Production with Seasons:
+//   Uses each Episode's watching date and duration.
+//
+// Unwatched or undated entries:
+//   Do not contribute to completed watch time.
+//
+// A Season's duration is never added on top of
+// its Episodes' durations, preventing double counts.
 
-function productionMinutes(production) {
+function watchedEventsForProduction(production) {
+  const events = [];
+
+  if (!production) return events;
+
   const seasons = getChildren(
-    "production", production.id
+    "production",
+    production.id
   );
 
   if (!seasons.length) {
-    return Number(production.duration) || 0;
-  }
+    const day = watchedDayKey(production);
+    const minutes = Number(production.duration);
 
-  let total = 0;
-  let hasDetailedDuration = false;
+    if (
+      day &&
+      production.duration != null &&
+      Number.isFinite(minutes) &&
+      minutes > 0
+    ) {
+      events.push({
+        date: day,
+        minutes,
+        medium: production.medium || "Unspecified",
+        productionId: production.id,
+        title: production.title
+      });
+    }
+
+    return events;
+  }
 
   seasons.forEach(season => {
     const episodes = getChildren(
-      "season", season.id
+      "season",
+      season.id
     );
 
-    const durations = episodes
-      .map(e => e.duration)
-      .filter(v => v !== null &&
-                   v !== undefined &&
-                   Number.isFinite(Number(v)));
+    episodes.forEach(episode => {
+      const day = watchedDayKey(episode);
+      const minutes = Number(episode.duration);
 
-    if (durations.length) {
-      total += durations.reduce(
-        (sum, v) => sum + Number(v), 0
-      );
-
-      hasDetailedDuration = true;
-    } else if (
-      season.duration !== null &&
-      season.duration !== undefined
-    ) {
-      total += Number(season.duration) || 0;
-      hasDetailedDuration = true;
-    }
+      if (
+        day &&
+        episode.duration != null &&
+        Number.isFinite(minutes) &&
+        minutes > 0
+      ) {
+        events.push({
+          date: day,
+          minutes,
+          medium: production.medium || "Unspecified",
+          productionId: production.id,
+          title: episode.title
+        });
+      }
+    });
   });
 
-  return hasDetailedDuration
-    ? total
-    : Number(production.duration) || 0;
+  return events;
 }
+
+function productionMinutes(production) {
+  return watchedEventsForProduction(production)
+    .reduce(
+      (total, event) => total + event.minutes,
+      0
+    );
+}
+
 
 /* ==========================================
    STATISTICS
@@ -1646,12 +1684,13 @@ function fillDiagramSelector() {
   }
 }
 
+
 function statisticsData() {
   const productions = trackerData.productions;
 
   const ratings = productions
     .map(effectiveRating)
-    .filter(r => r !== null);
+    .filter(value => value !== null);
 
   const media = new Map();
   const genres = new Map();
@@ -1660,38 +1699,72 @@ function statisticsData() {
   const timeline = new Map();
 
   const points = [];
+  const watchedEvents = [];
 
-  productions.forEach(p => {
-    const minutes = productionMinutes(p);
-    const medium = p.medium || "Unspecified";
+  productions.forEach(production => {
+    const events = watchedEventsForProduction(
+      production
+    );
+
+    const minutes = events.reduce(
+      (sum, event) => sum + event.minutes,
+      0
+    );
+
+    watchedEvents.push(...events);
+
+    // Watch time by medium.
+
+    const medium =
+      production.medium || "Unspecified";
 
     media.set(
       medium,
       (media.get(medium) || 0) + minutes
     );
 
+    // Watch time by actual watching date.
+
+    events.forEach(event => {
+      timeline.set(
+        event.date,
+        (timeline.get(event.date) || 0) +
+          event.minutes
+      );
+    });
+
+    // Genre distribution.
+
     const uniqueGenres = [...new Set(
-      genreList(p).map(g =>
-        g.toLowerCase()
+      genreList(production).map(
+        genre => genre.toLowerCase()
       )
     )];
 
     genreSets.set(
-      p.id,
+      production.id,
       new Set(uniqueGenres)
     );
 
-    uniqueGenres.forEach(g => {
+    uniqueGenres.forEach(genre => {
       genres.set(
-        g,
-        (genres.get(g) || 0) + 1
+        genre,
+        (genres.get(genre) || 0) + 1
       );
     });
 
-    for (let i = 0; i < uniqueGenres.length; i++) {
-      for (let j = i + 1;
-           j < uniqueGenres.length; j++) {
+    // Genre overlaps.
 
+    for (
+      let i = 0;
+      i < uniqueGenres.length;
+      i++
+    ) {
+      for (
+        let j = i + 1;
+        j < uniqueGenres.length;
+        j++
+      ) {
         const key = [
           uniqueGenres[i],
           uniqueGenres[j]
@@ -1704,38 +1777,30 @@ function statisticsData() {
       }
     }
 
-    const rating = effectiveRating(p);
+    // Rating vs actual watched duration.
+
+    const rating = effectiveRating(production);
 
     if (rating !== null) {
       points.push({
-        title: p.title,
+        title: production.title,
         x: minutes,
         y: rating
       });
     }
-
-    const year = String(p.release || "")
-      .match(/\b(?:18|19|20|21)\d{2}\b/)?.[0];
-
-    if (year) {
-      timeline.set(
-        year,
-        (timeline.get(year) || 0) + minutes
-      );
-    }
   });
 
-  const total = productions.reduce(
-    (sum, p) => sum + productionMinutes(p),
+  const total = watchedEvents.reduce(
+    (sum, event) => sum + event.minutes,
     0
   );
 
   const ranked = productions
-    .map(p => ({
-      title: p.title,
-      rating: effectiveRating(p)
+    .map(production => ({
+      title: production.title,
+      rating: effectiveRating(production)
     }))
-    .filter(p => p.rating !== null)
+    .filter(item => item.rating !== null)
     .sort((a,b) => b.rating - a.rating);
 
   return {
@@ -1747,29 +1812,36 @@ function statisticsData() {
         ratings.length
       : null,
 
-    media: [...media].map(([name,value]) =>
-      ({name,value})
-    ),
+    media: [...media]
+      .map(([name,value]) => ({name,value})),
 
     genres: [...genres]
       .map(([name,value]) => ({name,value}))
-      .sort((a,b) => b.value-a.value),
+      .sort((a,b) => b.value - a.value),
 
     overlaps: [...overlaps]
       .map(([key,value]) => ({
-        name: key.replace("|"," + "),
+        name: key.replace("|", " + "),
         pair: key.split("|"),
         value
       }))
-      .sort((a,b) => b.value-a.value),
+      .sort((a,b) => b.value - a.value),
 
     genreSets,
     points,
     ranked,
+    watchedEvents,
 
+    // ISO-formatted dates sort chronologically.
     timeline: [...timeline]
-      .sort((a,b) => Number(a[0])-Number(b[0]))
-      .map(([name,value]) => ({name,value}))
+      .sort((a,b) => a[0].localeCompare(b[0]))
+      .map(([date,value]) => ({
+        name: date.slice(8,10) + "." +
+              date.slice(5,7) + "." +
+              date.slice(2,4),
+        date,
+        value
+      }))
   };
 }
 
@@ -1830,10 +1902,11 @@ function renderStatistics() {
     DIAGRAMS[diagram];
 
   const descriptions = {
-    watchTime:
-      "Entered durations grouped by release year. This is not a personal viewing timeline.",
-    media:
-      "Entered durations grouped by Production media type.",
+  
+watchTime:
+  "Actual watched duration, grouped by the date you watched each Production or Episode. Airing dates are excluded.",
+media:
+  "Actual watched minutes grouped by media type. Only entries with a watching date and a duration are included.",
     genres:
       "Number of Productions carrying each genre. Productions can count toward multiple genres.",
     overlap:
