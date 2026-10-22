@@ -835,7 +835,17 @@ if (allowWatching && !validTrackerDate(watchingInput)) {
     episodeNumber: type === "episode"
       ? episodeNumber
       : null,
-    release: $("editRelease").value.trim(),
+
+release: existing?.release || "",
+
+airingDate: allowAiring
+  ? airingInput
+  : (existing?.airingDate || ""),
+
+watchedDate: allowWatching
+  ? watchingInput
+  : (existing?.watchedDate || ""),
+
     duration,
     rating,
 
